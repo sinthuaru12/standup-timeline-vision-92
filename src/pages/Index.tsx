@@ -5,6 +5,8 @@ import { Dashboard } from "@/components/Dashboard";
 import { UserManagement } from "@/components/UserManagement";
 import { TeamOverview } from "@/components/TeamOverview";
 import { TimelineView } from "@/components/TimelineView";
+import { RiskAnalysis } from "@/components/RiskAnalysis";
+import { IndividualTimelines } from "@/components/IndividualTimelines";
 import { SidebarProvider } from "@/components/ui/sidebar";
 
 const Index = () => {
@@ -20,6 +22,10 @@ const Index = () => {
         return <TeamOverview />;
       case "timeline":
         return <TimelineView />;
+      case "risk-analysis":
+        return <RiskAnalysis />;
+      case "individual-timelines":
+        return <IndividualTimelines />;
       default:
         return <Dashboard />;
     }
