@@ -7,6 +7,7 @@ import { TeamOverview } from "@/components/TeamOverview";
 import { TimelineView } from "@/components/TimelineView";
 import { RiskAnalysis } from "@/components/RiskAnalysis";
 import { IndividualTimelines } from "@/components/IndividualTimelines";
+import { SprintDashboard } from "@/components/SprintDashboard";
 import { SidebarProvider } from "@/components/ui/sidebar";
 
 const Index = () => {
@@ -26,6 +27,8 @@ const Index = () => {
         return <RiskAnalysis />;
       case "individual-timelines":
         return <IndividualTimelines />;
+      case "sprint-dashboard":
+        return <SprintDashboard />;
       default:
         return <Dashboard />;
     }
