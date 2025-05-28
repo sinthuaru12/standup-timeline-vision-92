@@ -1,5 +1,5 @@
 
-import { Users, Calendar, BarChart3, Settings, Home, UserCircle, AlertTriangle, TrendingUp } from "lucide-react";
+import { Users, Calendar, BarChart3, Settings, Home, UserCircle, AlertTriangle, TrendingUp, Timer } from "lucide-react";
 import {
   Sidebar as SidebarContainer,
   SidebarContent,
@@ -24,6 +24,7 @@ const menuItems = [
   { id: "timeline", title: "Timeline", icon: Calendar },
   { id: "risk-analysis", title: "Risk Analysis", icon: AlertTriangle },
   { id: "individual-timelines", title: "Individual Timelines", icon: TrendingUp },
+  { id: "sprint-dashboard", title: "Sprint Dashboard", icon: Timer },
 ];
 
 export function Sidebar({ activeView, onViewChange }: SidebarProps) {
