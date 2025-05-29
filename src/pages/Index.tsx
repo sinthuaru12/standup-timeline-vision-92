@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { Dashboard } from "@/components/Dashboard";
-import { UserManagement } from "@/components/UserManagement";
+import { TeamMemberManagement } from "@/components/TeamMemberManagement";
 import { TimelineView } from "@/components/TimelineView";
 import { RiskAnalysis } from "@/components/RiskAnalysis";
 import { IndividualTimelines } from "@/components/IndividualTimelines";
@@ -17,8 +17,8 @@ const Index = () => {
     switch (activeView) {
       case "dashboard":
         return <Dashboard />;
-      case "users":
-        return <UserManagement />;
+      case "team-members":
+        return <TeamMemberManagement />;
       case "timeline":
         return <TimelineView />;
       case "risk-analysis":
