@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Search, ChevronDown, LogOut, User } from "lucide-react";
+import { Search, ChevronDown, LogOut, User, Users } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,6 +9,9 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
   Select,
@@ -101,6 +104,23 @@ export function TopBar({
               <User className="mr-2 h-4 w-4" />
               <span>Profile</span>
             </DropdownMenuItem>
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger>
+                <Users className="mr-2 h-4 w-4" />
+                <span>Teams</span>
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent>
+                {teams.map((team) => (
+                  <DropdownMenuItem 
+                    key={team} 
+                    onClick={() => onTeamChange(team)}
+                    className={currentTeam === team ? "bg-accent" : ""}
+                  >
+                    <span>{team}</span>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={onLogout} className="text-red-600">
               <LogOut className="mr-2 h-4 w-4" />
