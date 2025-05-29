@@ -20,11 +20,11 @@ interface SidebarProps {
 const menuItems = [
   { id: "dashboard", title: "Dashboard", icon: Home },
   { id: "users", title: "User Management", icon: UserCircle },
-  { id: "teams", title: "Team Overview", icon: Users },
   { id: "timeline", title: "Timeline", icon: Calendar },
   { id: "risk-analysis", title: "Risk Analysis", icon: AlertTriangle },
   { id: "individual-timelines", title: "Individual Timelines", icon: TrendingUp },
   { id: "sprint-dashboard", title: "Sprint Dashboard", icon: Timer },
+  { id: "settings", title: "Settings", icon: Settings },
 ];
 
 export function Sidebar({ activeView, onViewChange }: SidebarProps) {

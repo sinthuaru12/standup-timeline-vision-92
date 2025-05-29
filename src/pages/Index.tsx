@@ -3,11 +3,11 @@ import { useState } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { Dashboard } from "@/components/Dashboard";
 import { UserManagement } from "@/components/UserManagement";
-import { TeamOverview } from "@/components/TeamOverview";
 import { TimelineView } from "@/components/TimelineView";
 import { RiskAnalysis } from "@/components/RiskAnalysis";
 import { IndividualTimelines } from "@/components/IndividualTimelines";
 import { SprintDashboard } from "@/components/SprintDashboard";
+import { Settings } from "@/components/Settings";
 import { SidebarProvider } from "@/components/ui/sidebar";
 
 const Index = () => {
@@ -19,8 +19,6 @@ const Index = () => {
         return <Dashboard />;
       case "users":
         return <UserManagement />;
-      case "teams":
-        return <TeamOverview />;
       case "timeline":
         return <TimelineView />;
       case "risk-analysis":
@@ -29,6 +27,8 @@ const Index = () => {
         return <IndividualTimelines />;
       case "sprint-dashboard":
         return <SprintDashboard />;
+      case "settings":
+        return <Settings />;
       default:
         return <Dashboard />;
     }
