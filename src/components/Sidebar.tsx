@@ -19,7 +19,7 @@ interface SidebarProps {
 
 const menuItems = [
   { id: "dashboard", title: "Dashboard", icon: Home },
-  { id: "team-members", title: "Team Member Management", icon: UserCircle },
+  { id: "team-members", title: "Team Members", icon: UserCircle },
   { id: "timeline", title: "Timeline", icon: Calendar },
   { id: "risk-analysis", title: "Risk Analysis", icon: AlertTriangle },
   { id: "individual-timelines", title: "Individual Timelines", icon: TrendingUp },
