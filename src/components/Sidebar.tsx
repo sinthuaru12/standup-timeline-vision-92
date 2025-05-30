@@ -30,10 +30,10 @@ const menuItems = [
 export function Sidebar({ activeView, onViewChange }: SidebarProps) {
   return (
     <SidebarContainer 
-      className="w-64 border-r bg-white group-data-[collapsible=icon]:w-16 transition-all duration-300 hover:w-64"
+      className="w-64 border-r bg-white group-data-[collapsible=icon]:w-16 transition-all duration-300 group-hover/sidebar-wrapper:w-64"
       collapsible="icon"
     >
-      <SidebarHeader className="p-6 group-data-[collapsible=icon]:p-3">
+      <SidebarHeader className="p-6 group-data-[collapsible=icon]:p-3 transition-all duration-300">
         <div className="flex items-center space-x-2 group-data-[collapsible=icon]:justify-center">
           <BarChart3 className="h-8 w-8 text-blue-600 flex-shrink-0" />
           <span className="text-xl font-bold text-gray-900 group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:w-0 overflow-hidden transition-all duration-300 group-hover/sidebar-wrapper:opacity-100 group-hover/sidebar-wrapper:w-auto">
