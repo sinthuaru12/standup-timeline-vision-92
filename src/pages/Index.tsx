@@ -9,7 +9,7 @@ import { RiskAnalysis } from "@/components/RiskAnalysis";
 import { IndividualTimelines } from "@/components/IndividualTimelines";
 import { SprintDashboard } from "@/components/SprintDashboard";
 import { Settings } from "@/components/Settings";
-import { SidebarProvider } from "@/components/ui/sidebar";
+import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 
 const Index = () => {
   const [activeView, setActiveView] = useState("dashboard");
@@ -81,25 +81,25 @@ const Index = () => {
   };
 
   return (
-    <SidebarProvider>
-      <div className="min-h-screen flex flex-col w-full bg-gray-50">
-        <TopBar
-          userName={userData.name}
-          userAvatar={userData.avatar}
-          currentTeam={currentTeam}
-          teams={teams}
-          onTeamChange={handleTeamChange}
-          onLogout={handleLogout}
-          activeView={activeView}
-        />
-        <div className="flex flex-1">
-          <Sidebar activeView={activeView} onViewChange={setActiveView} />
+    <SidebarProvider defaultOpen={false}>
+      <div className="min-h-screen flex w-full bg-gray-50">
+        <Sidebar activeView={activeView} onViewChange={setActiveView} />
+        <SidebarInset className="flex flex-col flex-1">
+          <TopBar
+            userName={userData.name}
+            userAvatar={userData.avatar}
+            currentTeam={currentTeam}
+            teams={teams}
+            onTeamChange={handleTeamChange}
+            onLogout={handleLogout}
+            activeView={activeView}
+          />
           <main className="flex-1 p-6">
             <div className="max-w-7xl mx-auto">
               {renderActiveView()}
             </div>
           </main>
-        </div>
+        </SidebarInset>
       </div>
     </SidebarProvider>
   );

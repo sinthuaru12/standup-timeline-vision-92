@@ -29,16 +29,21 @@ const menuItems = [
 
 export function Sidebar({ activeView, onViewChange }: SidebarProps) {
   return (
-    <SidebarContainer className="w-64 border-r bg-white">
-      <SidebarHeader className="p-6">
-        <div className="flex items-center space-x-2">
-          <BarChart3 className="h-8 w-8 text-blue-600" />
-          <span className="text-xl font-bold text-gray-900">ProjectFlow</span>
+    <SidebarContainer 
+      className="w-64 border-r bg-white group-data-[collapsible=icon]:w-16 transition-all duration-300 hover:w-64"
+      collapsible="icon"
+    >
+      <SidebarHeader className="p-6 group-data-[collapsible=icon]:p-3">
+        <div className="flex items-center space-x-2 group-data-[collapsible=icon]:justify-center">
+          <BarChart3 className="h-8 w-8 text-blue-600 flex-shrink-0" />
+          <span className="text-xl font-bold text-gray-900 group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:w-0 overflow-hidden transition-all duration-300 group-hover/sidebar-wrapper:opacity-100 group-hover/sidebar-wrapper:w-auto">
+            ProjectFlow
+          </span>
         </div>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className="text-xs font-medium text-gray-500 uppercase tracking-wide px-3 py-2">
+          <SidebarGroupLabel className="text-xs font-medium text-gray-500 uppercase tracking-wide px-3 py-2 group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:h-0 overflow-hidden transition-all duration-300 group-hover/sidebar-wrapper:opacity-100 group-hover/sidebar-wrapper:h-auto">
             Navigation
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -47,14 +52,17 @@ export function Sidebar({ activeView, onViewChange }: SidebarProps) {
                 <SidebarMenuItem key={item.id}>
                   <SidebarMenuButton 
                     onClick={() => onViewChange(item.id)}
-                    className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${
+                    tooltip={item.title}
+                    className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors group-data-[collapsible=icon]:justify-center ${
                       activeView === item.id 
                         ? "bg-blue-50 text-blue-700 border-r-2 border-blue-600" 
                         : "text-gray-600 hover:bg-gray-50"
                     }`}
                   >
-                    <item.icon className="h-5 w-5" />
-                    <span className="font-medium">{item.title}</span>
+                    <item.icon className="h-5 w-5 flex-shrink-0" />
+                    <span className="font-medium group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:w-0 overflow-hidden transition-all duration-300 group-hover/sidebar-wrapper:opacity-100 group-hover/sidebar-wrapper:w-auto">
+                      {item.title}
+                    </span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
