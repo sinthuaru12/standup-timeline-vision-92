@@ -26,7 +26,27 @@ const Index = () => {
     "Design Team", 
     "Marketing Team",
     "Sales Team",
-    "HR Team"
+    "HR Team",
+    "Product Team",
+    "Engineering Team",
+    "QA Team",
+    "DevOps Team",
+    "Data Science Team",
+    "Customer Success Team",
+    "Finance Team",
+    "Legal Team",
+    "Operations Team",
+    "Business Development Team",
+    "Research Team",
+    "Security Team",
+    "Infrastructure Team",
+    "Mobile Team",
+    "Frontend Team",
+    "Backend Team",
+    "Analytics Team",
+    "Content Team",
+    "Social Media Team",
+    "Support Team"
   ];
 
   const handleTeamChange = (team: string) => {
@@ -70,6 +90,7 @@ const Index = () => {
           teams={teams}
           onTeamChange={handleTeamChange}
           onLogout={handleLogout}
+          activeView={activeView}
         />
         <div className="flex flex-1">
           <Sidebar activeView={activeView} onViewChange={setActiveView} />

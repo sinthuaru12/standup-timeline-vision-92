@@ -29,6 +29,7 @@ interface TopBarProps {
   teams: string[];
   onTeamChange: (team: string) => void;
   onLogout: () => void;
+  activeView: string;
 }
 
 export function TopBar({ 
@@ -37,41 +38,34 @@ export function TopBar({
   currentTeam, 
   teams, 
   onTeamChange, 
-  onLogout 
+  onLogout,
+  activeView
 }: TopBarProps) {
-  const [searchQuery, setSearchQuery] = useState("");
+  const [teamSearchQuery, setTeamSearchQuery] = useState("");
 
   const filteredTeams = teams.filter(team => 
-    team.toLowerCase().includes(searchQuery.toLowerCase())
+    team.toLowerCase().includes(teamSearchQuery.toLowerCase())
   );
+
+  const isSettingsView = activeView === "settings";
 
   return (
     <div className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6">
-      {/* Left side - Team selector */}
+      {/* Left side - Current Team Display */}
       <div className="flex items-center space-x-4">
-        <div className="flex items-center space-x-2">
-          <span className="text-sm font-medium text-gray-700">Current Team:</span>
-          <Select value={currentTeam} onValueChange={onTeamChange}>
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="Select a team" />
-            </SelectTrigger>
-            <SelectContent>
-              <div className="p-2">
-                <Input
-                  placeholder="Search teams..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="h-8"
-                />
-              </div>
-              {filteredTeams.map((team) => (
-                <SelectItem key={team} value={team}>
-                  {team}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        {!isSettingsView && (
+          <div className="flex items-center space-x-2">
+            <span className="text-sm font-medium text-gray-700">Team:</span>
+            <div className="px-3 py-1 bg-blue-50 text-blue-700 rounded-md border border-blue-200">
+              <span className="font-semibold">{currentTeam}</span>
+            </div>
+          </div>
+        )}
+        {isSettingsView && (
+          <div className="flex items-center space-x-2">
+            <span className="text-sm font-medium text-gray-500">Global Settings</span>
+          </div>
+        )}
       </div>
 
       {/* Right side - User info and actions */}
@@ -109,16 +103,31 @@ export function TopBar({
                 <Users className="mr-2 h-4 w-4" />
                 <span>Teams</span>
               </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent>
-                {teams.map((team) => (
-                  <DropdownMenuItem 
-                    key={team} 
-                    onClick={() => onTeamChange(team)}
-                    className={currentTeam === team ? "bg-accent" : ""}
-                  >
-                    <span>{team}</span>
-                  </DropdownMenuItem>
-                ))}
+              <DropdownMenuSubContent className="w-64">
+                <div className="p-2">
+                  <Input
+                    placeholder="Search teams..."
+                    value={teamSearchQuery}
+                    onChange={(e) => setTeamSearchQuery(e.target.value)}
+                    className="h-8"
+                  />
+                </div>
+                <div className="max-h-48 overflow-y-auto">
+                  {filteredTeams.map((team) => (
+                    <DropdownMenuItem 
+                      key={team} 
+                      onClick={() => onTeamChange(team)}
+                      className={currentTeam === team ? "bg-accent" : ""}
+                    >
+                      <span>{team}</span>
+                    </DropdownMenuItem>
+                  ))}
+                  {filteredTeams.length === 0 && (
+                    <DropdownMenuItem disabled>
+                      <span className="text-muted-foreground">No teams found</span>
+                    </DropdownMenuItem>
+                  )}
+                </div>
               </DropdownMenuSubContent>
             </DropdownMenuSub>
             <DropdownMenuSeparator />
