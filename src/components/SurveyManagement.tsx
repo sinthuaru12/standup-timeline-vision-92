@@ -5,68 +5,148 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Badge } from "@/components/ui/badge";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { CalendarIcon, Check, ChevronsUpDown, Plus, X, Clock, Users, Search } from "lucide-react";
-import { format } from "date-fns";
+import { Calendar, Clock, Plus, Send, Edit, Trash2, Eye, Users, User } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
-// Mock user data
-const mockUsers = Array.from({ length: 350 }, (_, i) => ({
+// Mock data for existing surveys
+const existingSurveys = [
+  {
+    id: 1,
+    title: "Team Satisfaction Survey",
+    description: "Quarterly team satisfaction assessment",
+    status: "Active",
+    recipients: "All Users (324)",
+    scheduledDate: "2024-01-15",
+    responses: 45,
+    totalSent: 324,
+    createdAt: "2024-01-10"
+  },
+  {
+    id: 2,
+    title: "Project Feedback Survey",
+    description: "End of project feedback collection",
+    status: "Completed",
+    recipients: "Development Team (12)",
+    scheduledDate: "2024-01-01",
+    responses: 12,
+    totalSent: 12,
+    createdAt: "2023-12-28"
+  },
+  {
+    id: 3,
+    title: "Annual Review Survey",
+    description: "Annual performance and satisfaction review",
+    status: "Draft",
+    recipients: "All Users (324)",
+    scheduledDate: null,
+    responses: 0,
+    totalSent: 0,
+    createdAt: "2024-01-12"
+  }
+];
+
+// Mock users data
+const mockUsers = Array.from({ length: 324 }, (_, i) => ({
   id: i + 1,
   name: `User ${i + 1}`,
   email: `user${i + 1}@company.com`,
-  department: ['Engineering', 'Design', 'Marketing', 'Sales', 'HR'][i % 5]
+  department: ["Engineering", "Design", "Marketing", "Sales", "HR"][i % 5]
 }));
 
-const weekdays = [
-  { value: 'monday', label: 'Monday' },
-  { value: 'tuesday', label: 'Tuesday' },
-  { value: 'wednesday', label: 'Wednesday' },
-  { value: 'thursday', label: 'Thursday' },
-  { value: 'friday', label: 'Friday' },
-  { value: 'saturday', label: 'Saturday' },
-  { value: 'sunday', label: 'Sunday' }
-];
-
 export function SurveyManagement() {
-  const [recipientType, setRecipientType] = useState<'all' | 'specific'>('all');
-  const [selectedUsers, setSelectedUsers] = useState<typeof mockUsers>([]);
-  const [userSearchOpen, setUserSearchOpen] = useState(false);
-  const [userSearchQuery, setUserSearchQuery] = useState('');
-  const [schedulingMode, setSchedulingMode] = useState<'immediate' | 'schedule'>('immediate');
-  const [scheduleType, setScheduleType] = useState<'once' | 'daily' | 'weekly' | 'monthly'>('once');
-  const [scheduleDate, setScheduleDate] = useState<Date>();
-  const [scheduleTime, setScheduleTime] = useState('09:00');
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [recipientType, setRecipientType] = useState<"all" | "specific">("all");
+  const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
+  const [userSearch, setUserSearch] = useState("");
+  const [deliveryMode, setDeliveryMode] = useState<"immediate" | "scheduled">("immediate");
+  const [scheduleType, setScheduleType] = useState<"once" | "daily" | "weekly" | "monthly">("once");
   const [selectedWeekdays, setSelectedWeekdays] = useState<string[]>([]);
-  const [monthlyDates, setMonthlyDates] = useState<string[]>([]);
+  const [selectedDates, setSelectedDates] = useState<string[]>([]);
+  
+  const [newSurvey, setNewSurvey] = useState({
+    title: "",
+    description: "",
+    questions: [""],
+    scheduleDate: "",
+    scheduleTime: "",
+    dailyTime: "",
+    weeklyTime: "",
+    monthlyTime: ""
+  });
 
-  const filteredUsers = mockUsers.filter(user =>
-    user.name.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
-    user.email.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
-    user.department.toLowerCase().includes(userSearchQuery.toLowerCase())
+  const filteredUsers = mockUsers.filter(user => 
+    user.name.toLowerCase().includes(userSearch.toLowerCase()) ||
+    user.email.toLowerCase().includes(userSearch.toLowerCase()) ||
+    user.department.toLowerCase().includes(userSearch.toLowerCase())
   );
 
-  const handleUserSelect = (user: typeof mockUsers[0]) => {
-    if (!selectedUsers.find(u => u.id === user.id)) {
-      setSelectedUsers([...selectedUsers, user]);
+  const weekdays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+  const monthDates = Array.from({ length: 31 }, (_, i) => (i + 1).toString());
+
+  const handleUserSelection = (userId: number, checked: boolean) => {
+    if (checked) {
+      setSelectedUsers([...selectedUsers, userId]);
+    } else {
+      setSelectedUsers(selectedUsers.filter(id => id !== userId));
     }
   };
 
-  const handleUserRemove = (userId: number) => {
-    setSelectedUsers(selectedUsers.filter(u => u.id !== userId));
+  const handleWeekdaySelection = (weekday: string, checked: boolean) => {
+    if (checked) {
+      setSelectedWeekdays([...selectedWeekdays, weekday]);
+    } else {
+      setSelectedWeekdays(selectedWeekdays.filter(day => day !== weekday));
+    }
   };
 
-  const handleWeekdayToggle = (weekday: string) => {
-    setSelectedWeekdays(prev =>
-      prev.includes(weekday)
-        ? prev.filter(w => w !== weekday)
-        : [...prev, weekday]
-    );
+  const handleDateSelection = (date: string, checked: boolean) => {
+    if (checked) {
+      setSelectedDates([...selectedDates, date]);
+    } else {
+      setSelectedDates(selectedDates.filter(d => d !== date));
+    }
+  };
+
+  const addQuestion = () => {
+    setNewSurvey({ ...newSurvey, questions: [...newSurvey.questions, ""] });
+  };
+
+  const updateQuestion = (index: number, value: string) => {
+    const updatedQuestions = [...newSurvey.questions];
+    updatedQuestions[index] = value;
+    setNewSurvey({ ...newSurvey, questions: updatedQuestions });
+  };
+
+  const removeQuestion = (index: number) => {
+    const updatedQuestions = newSurvey.questions.filter((_, i) => i !== index);
+    setNewSurvey({ ...newSurvey, questions: updatedQuestions });
+  };
+
+  const handleCreateSurvey = () => {
+    console.log("Creating survey:", {
+      ...newSurvey,
+      recipientType,
+      selectedUsers: recipientType === "specific" ? selectedUsers : null,
+      deliveryMode,
+      scheduleType: deliveryMode === "scheduled" ? scheduleType : null,
+      selectedWeekdays: scheduleType === "weekly" ? selectedWeekdays : null,
+      selectedDates: scheduleType === "monthly" ? selectedDates : null
+    });
+    setIsCreateDialogOpen(false);
+  };
+
+  const getStatusBadge = (status: string) => {
+    const variants = {
+      "Active": "default",
+      "Completed": "secondary",
+      "Draft": "outline"
+    } as const;
+    return <Badge variant={variants[status as keyof typeof variants] || "outline"}>{status}</Badge>;
   };
 
   return (
@@ -74,265 +154,325 @@ export function SurveyManagement() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Survey Management</h1>
-          <p className="text-gray-600">Create and manage surveys for your teams</p>
+          <p className="text-gray-600">Create and manage surveys for your organization</p>
         </div>
-        <Button>
-          <Plus className="h-4 w-4 mr-2" />
-          Create Survey
-        </Button>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Create New Survey</CardTitle>
-          <CardDescription>Design and schedule your survey</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Basic Survey Info */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="surveyTitle">Survey Title</Label>
-              <Input id="surveyTitle" placeholder="Enter survey title" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="surveyCategory">Category</Label>
-              <Select>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="feedback">Team Feedback</SelectItem>
-                  <SelectItem value="satisfaction">Job Satisfaction</SelectItem>
-                  <SelectItem value="engagement">Employee Engagement</SelectItem>
-                  <SelectItem value="performance">Performance Review</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="surveyDescription">Description</Label>
-            <Textarea id="surveyDescription" placeholder="Describe your survey purpose and goals" />
-          </div>
-
-          {/* Recipients Selection */}
-          <div className="space-y-4">
-            <Label className="text-base font-semibold">Recipients</Label>
-            <RadioGroup value={recipientType} onValueChange={(value) => setRecipientType(value as 'all' | 'specific')}>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="all" id="all-users" />
-                <Label htmlFor="all-users">All Users</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="specific" id="specific-users" />
-                <Label htmlFor="specific-users">Specific Users</Label>
-              </div>
-            </RadioGroup>
-
-            {recipientType === 'specific' && (
-              <div className="space-y-3">
-                <Popover open={userSearchOpen} onOpenChange={setUserSearchOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      aria-expanded={userSearchOpen}
-                      className="w-full justify-between"
-                    >
-                      <div className="flex items-center">
-                        <Search className="h-4 w-4 mr-2" />
-                        Search and select users...
-                      </div>
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-full p-0">
-                    <Command>
-                      <CommandInput 
-                        placeholder="Search users by name, email, or department..." 
-                        value={userSearchQuery}
-                        onValueChange={setUserSearchQuery}
-                      />
-                      <CommandList>
-                        <CommandEmpty>No users found.</CommandEmpty>
-                        <CommandGroup>
-                          {filteredUsers.slice(0, 50).map((user) => (
-                            <CommandItem
-                              key={user.id}
-                              value={user.name}
-                              onSelect={() => {
-                                handleUserSelect(user);
-                                setUserSearchQuery('');
-                              }}
-                            >
-                              <Check
-                                className={`mr-2 h-4 w-4 ${
-                                  selectedUsers.find(u => u.id === user.id) ? "opacity-100" : "opacity-0"
-                                }`}
-                              />
-                              <div className="flex flex-col">
-                                <span>{user.name}</span>
-                                <span className="text-xs text-gray-500">{user.email} • {user.department}</span>
-                              </div>
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-
-                {selectedUsers.length > 0 && (
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">Selected Users ({selectedUsers.length})</Label>
-                    <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-2 border rounded-md">
-                      {selectedUsers.map((user) => (
-                        <Badge key={user.id} variant="secondary" className="flex items-center gap-1">
-                          {user.name}
-                          <X 
-                            className="h-3 w-3 cursor-pointer" 
-                            onClick={() => handleUserRemove(user.id)}
-                          />
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Scheduling Mode */}
-          <div className="space-y-4">
-            <Label className="text-base font-semibold">Delivery Mode</Label>
-            <RadioGroup value={schedulingMode} onValueChange={(value) => setSchedulingMode(value as 'immediate' | 'schedule')}>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="immediate" id="immediate" />
-                <Label htmlFor="immediate">Send Immediately</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="schedule" id="schedule" />
-                <Label htmlFor="schedule">Schedule Delivery</Label>
-              </div>
-            </RadioGroup>
-
-            {schedulingMode === 'schedule' && (
-              <div className="space-y-4 p-4 border rounded-lg bg-gray-50">
-                <div className="space-y-3">
-                  <Label className="text-sm font-medium">Schedule Type</Label>
-                  <Select value={scheduleType} onValueChange={(value) => setScheduleType(value as any)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="once">One Time</SelectItem>
-                      <SelectItem value="daily">Daily</SelectItem>
-                      <SelectItem value="weekly">Weekly</SelectItem>
-                      <SelectItem value="monthly">Monthly</SelectItem>
-                    </SelectContent>
-                  </Select>
+        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              Create Survey
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Create New Survey</DialogTitle>
+              <DialogDescription>
+                Create a new survey to collect feedback from your team members
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-6">
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="title">Survey Title</Label>
+                  <Input
+                    id="title"
+                    value={newSurvey.title}
+                    onChange={(e) => setNewSurvey({ ...newSurvey, title: e.target.value })}
+                    placeholder="Enter survey title"
+                  />
                 </div>
+                <div>
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea
+                    id="description"
+                    value={newSurvey.description}
+                    onChange={(e) => setNewSurvey({ ...newSurvey, description: e.target.value })}
+                    placeholder="Enter survey description"
+                  />
+                </div>
+              </div>
 
-                {scheduleType === 'once' && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Date</Label>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button variant="outline" className="w-full justify-start text-left font-normal">
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {scheduleDate ? format(scheduleDate, "PPP") : "Pick a date"}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0">
-                          <Calendar
-                            mode="single"
-                            selected={scheduleDate}
-                            onSelect={setScheduleDate}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Time</Label>
-                      <Input 
-                        type="time" 
-                        value={scheduleTime} 
-                        onChange={(e) => setScheduleTime(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {scheduleType === 'daily' && (
-                  <div className="space-y-2">
-                    <Label>Time</Label>
-                    <Input 
-                      type="time" 
-                      value={scheduleTime} 
-                      onChange={(e) => setScheduleTime(e.target.value)}
+              {/* Questions Section */}
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <Label className="text-base font-semibold">Questions</Label>
+                  <Button variant="outline" size="sm" onClick={addQuestion}>
+                    <Plus className="h-4 w-4 mr-1" />
+                    Add Question
+                  </Button>
+                </div>
+                {newSurvey.questions.map((question, index) => (
+                  <div key={index} className="flex gap-2">
+                    <Textarea
+                      value={question}
+                      onChange={(e) => updateQuestion(index, e.target.value)}
+                      placeholder={`Question ${index + 1}`}
+                      className="flex-1"
                     />
+                    {newSurvey.questions.length > 1 && (
+                      <Button variant="outline" size="sm" onClick={() => removeQuestion(index)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
-                )}
+                ))}
+              </div>
 
-                {scheduleType === 'weekly' && (
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label>Weekdays</Label>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                        {weekdays.map((day) => (
-                          <div key={day.value} className="flex items-center space-x-2">
-                            <Checkbox 
-                              id={day.value}
-                              checked={selectedWeekdays.includes(day.value)}
-                              onCheckedChange={() => handleWeekdayToggle(day.value)}
+              {/* Recipients Section */}
+              <div className="space-y-4">
+                <Label className="text-base font-semibold">Recipients</Label>
+                <RadioGroup value={recipientType} onValueChange={(value: "all" | "specific") => setRecipientType(value)}>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="all" id="all-users" />
+                    <Label htmlFor="all-users" className="flex items-center">
+                      <Users className="h-4 w-4 mr-1" />
+                      All Users (324)
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="specific" id="specific-users" />
+                    <Label htmlFor="specific-users" className="flex items-center">
+                      <User className="h-4 w-4 mr-1" />
+                      Specific Users
+                    </Label>
+                  </div>
+                </RadioGroup>
+
+                {recipientType === "specific" && (
+                  <div className="space-y-3">
+                    <Input
+                      placeholder="Search users..."
+                      value={userSearch}
+                      onChange={(e) => setUserSearch(e.target.value)}
+                    />
+                    <div className="border rounded-md p-3 max-h-48 overflow-y-auto">
+                      <div className="space-y-2">
+                        {filteredUsers.slice(0, 50).map((user) => (
+                          <div key={user.id} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`user-${user.id}`}
+                              checked={selectedUsers.includes(user.id)}
+                              onCheckedChange={(checked) => handleUserSelection(user.id, checked as boolean)}
                             />
-                            <Label htmlFor={day.value} className="text-sm">{day.label}</Label>
+                            <Label htmlFor={`user-${user.id}`} className="text-sm">
+                              {user.name} ({user.email}) - {user.department}
+                            </Label>
                           </div>
                         ))}
+                        {filteredUsers.length > 50 && (
+                          <p className="text-sm text-gray-500">Showing first 50 results. Use search to narrow down.</p>
+                        )}
                       </div>
                     </div>
-                    <div className="space-y-2">
-                      <Label>Time</Label>
-                      <Input 
-                        type="time" 
-                        value={scheduleTime} 
-                        onChange={(e) => setScheduleTime(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {scheduleType === 'monthly' && (
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label>Dates of the Month</Label>
-                      <Input 
-                        placeholder="Enter dates (e.g., 1,15,30)" 
-                        value={monthlyDates.join(',')}
-                        onChange={(e) => setMonthlyDates(e.target.value.split(',').filter(Boolean))}
-                      />
-                      <p className="text-xs text-gray-500">Enter comma-separated dates (1-31)</p>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Time</Label>
-                      <Input 
-                        type="time" 
-                        value={scheduleTime} 
-                        onChange={(e) => setScheduleTime(e.target.value)}
-                      />
-                    </div>
+                    {selectedUsers.length > 0 && (
+                      <p className="text-sm text-gray-600">{selectedUsers.length} users selected</p>
+                    )}
                   </div>
                 )}
               </div>
-            )}
-          </div>
 
-          <div className="flex justify-end space-x-4">
-            <Button variant="outline">Save as Draft</Button>
-            <Button>Create Survey</Button>
-          </div>
+              {/* Delivery Mode Section */}
+              <div className="space-y-4">
+                <Label className="text-base font-semibold">Delivery Mode</Label>
+                <RadioGroup value={deliveryMode} onValueChange={(value: "immediate" | "scheduled") => setDeliveryMode(value)}>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="immediate" id="immediate" />
+                    <Label htmlFor="immediate" className="flex items-center">
+                      <Send className="h-4 w-4 mr-1" />
+                      Send Immediately
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="scheduled" id="scheduled" />
+                    <Label htmlFor="scheduled" className="flex items-center">
+                      <Calendar className="h-4 w-4 mr-1" />
+                      Schedule Delivery
+                    </Label>
+                  </div>
+                </RadioGroup>
+
+                {deliveryMode === "scheduled" && (
+                  <div className="space-y-4 pl-6">
+                    <Select value={scheduleType} onValueChange={(value: "once" | "daily" | "weekly" | "monthly") => setScheduleType(value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select schedule type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="once">One Time</SelectItem>
+                        <SelectItem value="daily">Daily</SelectItem>
+                        <SelectItem value="weekly">Weekly</SelectItem>
+                        <SelectItem value="monthly">Monthly</SelectItem>
+                      </SelectContent>
+                    </Select>
+
+                    {scheduleType === "once" && (
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label>Date</Label>
+                          <Input
+                            type="date"
+                            value={newSurvey.scheduleDate}
+                            onChange={(e) => setNewSurvey({ ...newSurvey, scheduleDate: e.target.value })}
+                          />
+                        </div>
+                        <div>
+                          <Label>Time</Label>
+                          <Input
+                            type="time"
+                            value={newSurvey.scheduleTime}
+                            onChange={(e) => setNewSurvey({ ...newSurvey, scheduleTime: e.target.value })}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {scheduleType === "daily" && (
+                      <div>
+                        <Label>Time</Label>
+                        <Input
+                          type="time"
+                          value={newSurvey.dailyTime}
+                          onChange={(e) => setNewSurvey({ ...newSurvey, dailyTime: e.target.value })}
+                        />
+                      </div>
+                    )}
+
+                    {scheduleType === "weekly" && (
+                      <div className="space-y-3">
+                        <Label>Select Weekdays</Label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {weekdays.map((day) => (
+                            <div key={day} className="flex items-center space-x-2">
+                              <Checkbox
+                                id={day}
+                                checked={selectedWeekdays.includes(day)}
+                                onCheckedChange={(checked) => handleWeekdaySelection(day, checked as boolean)}
+                              />
+                              <Label htmlFor={day} className="text-sm">{day}</Label>
+                            </div>
+                          ))}
+                        </div>
+                        <div>
+                          <Label>Time</Label>
+                          <Input
+                            type="time"
+                            value={newSurvey.weeklyTime}
+                            onChange={(e) => setNewSurvey({ ...newSurvey, weeklyTime: e.target.value })}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {scheduleType === "monthly" && (
+                      <div className="space-y-3">
+                        <Label>Select Dates</Label>
+                        <div className="grid grid-cols-8 gap-2 max-h-32 overflow-y-auto">
+                          {monthDates.map((date) => (
+                            <div key={date} className="flex items-center space-x-1">
+                              <Checkbox
+                                id={`date-${date}`}
+                                checked={selectedDates.includes(date)}
+                                onCheckedChange={(checked) => handleDateSelection(date, checked as boolean)}
+                              />
+                              <Label htmlFor={`date-${date}`} className="text-sm">{date}</Label>
+                            </div>
+                          ))}
+                        </div>
+                        <div>
+                          <Label>Time</Label>
+                          <Input
+                            type="time"
+                            value={newSurvey.monthlyTime}
+                            onChange={(e) => setNewSurvey({ ...newSurvey, monthlyTime: e.target.value })}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end space-x-2">
+                <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleCreateSurvey}>
+                  Create Survey
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {/* Surveys Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Existing Surveys</CardTitle>
+          <CardDescription>Manage and view all surveys</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Title</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Recipients</TableHead>
+                <TableHead>Scheduled Date</TableHead>
+                <TableHead>Responses</TableHead>
+                <TableHead>Created</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {existingSurveys.map((survey) => (
+                <TableRow key={survey.id}>
+                  <TableCell>
+                    <div>
+                      <div className="font-medium">{survey.title}</div>
+                      <div className="text-sm text-gray-500">{survey.description}</div>
+                    </div>
+                  </TableCell>
+                  <TableCell>{getStatusBadge(survey.status)}</TableCell>
+                  <TableCell className="text-sm">{survey.recipients}</TableCell>
+                  <TableCell>
+                    {survey.scheduledDate ? (
+                      <div className="flex items-center text-sm">
+                        <Calendar className="h-4 w-4 mr-1" />
+                        {survey.scheduledDate}
+                      </div>
+                    ) : (
+                      <span className="text-gray-400">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm">
+                      {survey.responses}/{survey.totalSent}
+                      {survey.totalSent > 0 && (
+                        <div className="text-xs text-gray-500">
+                          {Math.round((survey.responses / survey.totalSent) * 100)}% response rate
+                        </div>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-sm">{survey.createdAt}</TableCell>
+                  <TableCell>
+                    <div className="flex space-x-1">
+                      <Button variant="ghost" size="sm">
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm">
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
     </div>

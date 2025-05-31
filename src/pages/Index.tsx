@@ -19,6 +19,7 @@ import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 const Index = () => {
   const [activeView, setActiveView] = useState("dashboard");
   const [currentTeam, setCurrentTeam] = useState("Development Team");
+  const [isAdminMode, setIsAdminMode] = useState(false);
 
   // Mock data - in real app this would come from your auth/data layer
   const userData = {
@@ -56,7 +57,25 @@ const Index = () => {
 
   const handleTeamChange = (team: string) => {
     setCurrentTeam(team);
+    setIsAdminMode(false);
+    setActiveView("dashboard");
     console.log("Team changed to:", team);
+  };
+
+  const handleViewChange = (view: string) => {
+    if (view === "admin") {
+      setIsAdminMode(true);
+      setActiveView("user-management");
+    } else if (view === "profile" || view === "teams") {
+      setIsAdminMode(false);
+      setActiveView(view);
+    } else {
+      setActiveView(view);
+    }
+  };
+
+  const handleAdminModeChange = (isAdmin: boolean) => {
+    setIsAdminMode(isAdmin);
   };
 
   const handleLogout = () => {
@@ -100,7 +119,11 @@ const Index = () => {
   return (
     <SidebarProvider defaultOpen={false}>
       <div className="min-h-screen flex w-full bg-gray-50">
-        <Sidebar activeView={activeView} onViewChange={setActiveView} />
+        <Sidebar 
+          activeView={activeView} 
+          onViewChange={handleViewChange}
+          isAdminMode={isAdminMode}
+        />
         <SidebarInset className="flex flex-col flex-1">
           <TopBar
             userName={userData.name}
@@ -110,6 +133,9 @@ const Index = () => {
             onTeamChange={handleTeamChange}
             onLogout={handleLogout}
             activeView={activeView}
+            onViewChange={handleViewChange}
+            isAdminMode={isAdminMode}
+            onAdminModeChange={handleAdminModeChange}
           />
           <main className="flex-1 p-6">
             <div className="max-w-7xl mx-auto">

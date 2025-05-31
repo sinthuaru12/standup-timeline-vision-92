@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Search, ChevronDown, LogOut, User, Users } from "lucide-react";
+import { Search, ChevronDown, LogOut, User, Users, ArrowLeft } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,13 +13,6 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 
 interface TopBarProps {
@@ -30,6 +23,9 @@ interface TopBarProps {
   onTeamChange: (team: string) => void;
   onLogout: () => void;
   activeView: string;
+  onViewChange: (view: string) => void;
+  isAdminMode: boolean;
+  onAdminModeChange: (isAdmin: boolean) => void;
 }
 
 export function TopBar({ 
@@ -39,7 +35,10 @@ export function TopBar({
   teams, 
   onTeamChange, 
   onLogout,
-  activeView
+  activeView,
+  onViewChange,
+  isAdminMode,
+  onAdminModeChange
 }: TopBarProps) {
   const [teamSearchQuery, setTeamSearchQuery] = useState("");
 
@@ -47,23 +46,29 @@ export function TopBar({
     team.toLowerCase().includes(teamSearchQuery.toLowerCase())
   );
 
-  const isSettingsView = activeView === "settings";
+  const handleBackToTeam = () => {
+    onAdminModeChange(false);
+    onViewChange("dashboard");
+  };
 
   return (
     <div className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6">
-      {/* Left side - Current Team Display */}
+      {/* Left side - Current Team Display or Admin Mode */}
       <div className="flex items-center space-x-4">
-        {!isSettingsView && (
+        {isAdminMode ? (
+          <div className="flex items-center space-x-2">
+            <Button variant="ghost" size="sm" onClick={handleBackToTeam} className="flex items-center space-x-1">
+              <ArrowLeft className="h-4 w-4" />
+              <span>Back to Team</span>
+            </Button>
+            <span className="text-sm font-medium text-gray-500">Admin Mode</span>
+          </div>
+        ) : (
           <div className="flex items-center space-x-2">
             <span className="text-sm font-medium text-gray-700">Team:</span>
             <div className="px-3 py-1 bg-blue-50 text-blue-700 rounded-md border border-blue-200">
               <span className="font-semibold">{currentTeam}</span>
             </div>
-          </div>
-        )}
-        {isSettingsView && (
-          <div className="flex items-center space-x-2">
-            <span className="text-sm font-medium text-gray-500">Global Settings</span>
           </div>
         )}
       </div>
@@ -94,14 +99,18 @@ export function TopBar({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onViewChange("profile")}>
               <User className="mr-2 h-4 w-4" />
               <span>Profile</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onViewChange("teams")}>
+              <Users className="mr-2 h-4 w-4" />
+              <span>Teams</span>
             </DropdownMenuItem>
             <DropdownMenuSub>
               <DropdownMenuSubTrigger>
                 <Users className="mr-2 h-4 w-4" />
-                <span>Teams</span>
+                <span>Switch Team</span>
               </DropdownMenuSubTrigger>
               <DropdownMenuSubContent className="w-64">
                 <div className="p-2">
