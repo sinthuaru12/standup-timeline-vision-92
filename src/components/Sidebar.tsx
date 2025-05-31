@@ -1,6 +1,5 @@
 
-import { Users, Calendar, BarChart3, Settings, Home, UserCircle, AlertTriangle, TrendingUp, Timer, MessageSquare, Send, Shield } from "lucide-react";
-import { useState } from "react";
+import { Users, Calendar, BarChart3, Settings, Home, UserCircle, AlertTriangle, TrendingUp, Timer, MessageSquare, Send } from "lucide-react";
 import {
   Sidebar as SidebarContainer,
   SidebarContent,
@@ -41,20 +40,20 @@ export function Sidebar({ activeView, onViewChange, isAdminMode }: SidebarProps)
 
   return (
     <SidebarContainer 
-      className="w-64 border-r bg-white"
+      className="w-64 border-r bg-background"
       collapsible="none"
     >
       <SidebarHeader className="p-6">
         <div className="flex items-center space-x-2">
           <BarChart3 className="h-8 w-8 text-blue-600 flex-shrink-0" />
-          <span className="text-xl font-bold text-gray-900">
+          <span className="text-xl font-bold text-foreground">
             ProjectFlow
           </span>
         </div>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className="text-xs font-medium text-gray-500 uppercase tracking-wide px-3 py-2">
+          <SidebarGroupLabel className="text-xs font-medium text-muted-foreground uppercase tracking-wide px-3 py-2">
             {isAdminMode ? "Admin" : "Navigation"}
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -65,8 +64,8 @@ export function Sidebar({ activeView, onViewChange, isAdminMode }: SidebarProps)
                     onClick={() => onViewChange(item.id)}
                     className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${
                       activeView === item.id 
-                        ? "bg-blue-50 text-blue-700 border-r-2 border-blue-600" 
-                        : "text-gray-600 hover:bg-gray-50"
+                        ? "bg-blue-50 dark:bg-blue-900 text-blue-700 dark:text-blue-300 border-r-2 border-blue-600" 
+                        : "text-foreground hover:bg-accent"
                     }`}
                   >
                     <item.icon className="h-5 w-5 flex-shrink-0" />
@@ -76,17 +75,6 @@ export function Sidebar({ activeView, onViewChange, isAdminMode }: SidebarProps)
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
-              {!isAdminMode && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton 
-                    onClick={() => onViewChange("admin")}
-                    className="w-full flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors text-gray-600 hover:bg-gray-50"
-                  >
-                    <Shield className="h-5 w-5 flex-shrink-0" />
-                    <span className="font-medium">Admin</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

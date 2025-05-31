@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Search, ChevronDown, LogOut, User, Users, ArrowLeft } from "lucide-react";
+import { Search, ChevronDown, LogOut, User, Users, ArrowLeft, Shield, Moon, Sun } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,6 +14,7 @@ import {
   DropdownMenuSubTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { useTheme } from "next-themes";
 
 interface TopBarProps {
   userName: string;
@@ -41,6 +42,7 @@ export function TopBar({
   onAdminModeChange
 }: TopBarProps) {
   const [teamSearchQuery, setTeamSearchQuery] = useState("");
+  const { theme, setTheme } = useTheme();
 
   const filteredTeams = teams.filter(team => 
     team.toLowerCase().includes(teamSearchQuery.toLowerCase())
@@ -51,8 +53,13 @@ export function TopBar({
     onViewChange("dashboard");
   };
 
+  const handleAdminAccess = () => {
+    onAdminModeChange(true);
+    onViewChange("user-management");
+  };
+
   return (
-    <div className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6">
+    <div className="h-16 bg-background border-b border-border flex items-center justify-between px-6">
       {/* Left side - Current Team Display or Admin Mode */}
       <div className="flex items-center space-x-4">
         {isAdminMode ? (
@@ -61,12 +68,12 @@ export function TopBar({
               <ArrowLeft className="h-4 w-4" />
               <span>Back to Team</span>
             </Button>
-            <span className="text-sm font-medium text-gray-500">Admin Mode</span>
+            <span className="text-sm font-medium text-muted-foreground">Admin Mode</span>
           </div>
         ) : (
           <div className="flex items-center space-x-2">
-            <span className="text-sm font-medium text-gray-700">Team:</span>
-            <div className="px-3 py-1 bg-blue-50 text-blue-700 rounded-md border border-blue-200">
+            <span className="text-sm font-medium text-foreground">Team:</span>
+            <div className="px-3 py-1 bg-blue-50 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded-md border border-blue-200 dark:border-blue-800">
               <span className="font-semibold">{currentTeam}</span>
             </div>
           </div>
@@ -77,25 +84,36 @@ export function TopBar({
       <div className="flex items-center space-x-4">
         {/* Search */}
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
           <Input
             placeholder="Search..."
             className="pl-10 w-64"
           />
         </div>
 
+        {/* Theme toggle */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+        >
+          <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+          <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+          <span className="sr-only">Toggle theme</span>
+        </Button>
+
         {/* User dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="flex items-center space-x-2 hover:bg-gray-50">
+            <Button variant="ghost" className="flex items-center space-x-2 hover:bg-accent">
               <Avatar className="h-8 w-8">
                 <AvatarImage src={userAvatar} alt={userName} />
                 <AvatarFallback>
                   {userName.split(' ').map(n => n[0]).join('').toUpperCase()}
                 </AvatarFallback>
               </Avatar>
-              <span className="text-sm font-medium text-gray-700">{userName}</span>
-              <ChevronDown className="h-4 w-4 text-gray-400" />
+              <span className="text-sm font-medium text-foreground">{userName}</span>
+              <ChevronDown className="h-4 w-4 text-muted-foreground" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
@@ -106,6 +124,10 @@ export function TopBar({
             <DropdownMenuItem onClick={() => onViewChange("teams")}>
               <Users className="mr-2 h-4 w-4" />
               <span>Teams</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleAdminAccess}>
+              <Shield className="mr-2 h-4 w-4" />
+              <span>Admin</span>
             </DropdownMenuItem>
             <DropdownMenuSub>
               <DropdownMenuSubTrigger>
@@ -140,7 +162,7 @@ export function TopBar({
               </DropdownMenuSubContent>
             </DropdownMenuSub>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={onLogout} className="text-red-600">
+            <DropdownMenuItem onClick={onLogout} className="text-red-600 dark:text-red-400">
               <LogOut className="mr-2 h-4 w-4" />
               <span>Logout</span>
             </DropdownMenuItem>

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,6 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Calendar, Clock, Plus, Send, Edit, Trash2, Eye, Users, User } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { SurveyResponses } from "@/components/SurveyResponses";
 
 // Mock data for existing surveys
 const existingSurveys = [
@@ -67,6 +67,7 @@ export function SurveyManagement() {
   const [scheduleType, setScheduleType] = useState<"once" | "daily" | "weekly" | "monthly">("once");
   const [selectedWeekdays, setSelectedWeekdays] = useState<string[]>([]);
   const [selectedDates, setSelectedDates] = useState<string[]>([]);
+  const [viewingResponses, setViewingResponses] = useState<{ surveyId: number; surveyTitle: string } | null>(null);
   
   const [newSurvey, setNewSurvey] = useState({
     title: "",
@@ -140,6 +141,14 @@ export function SurveyManagement() {
     setIsCreateDialogOpen(false);
   };
 
+  const handleViewResponses = (surveyId: number, surveyTitle: string) => {
+    setViewingResponses({ surveyId, surveyTitle });
+  };
+
+  const handleBackToSurveys = () => {
+    setViewingResponses(null);
+  };
+
   const getStatusBadge = (status: string) => {
     const variants = {
       "Active": "default",
@@ -148,6 +157,16 @@ export function SurveyManagement() {
     } as const;
     return <Badge variant={variants[status as keyof typeof variants] || "outline"}>{status}</Badge>;
   };
+
+  if (viewingResponses) {
+    return (
+      <SurveyResponses
+        surveyId={viewingResponses.surveyId}
+        surveyTitle={viewingResponses.surveyTitle}
+        onBack={handleBackToSurveys}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -430,7 +449,7 @@ export function SurveyManagement() {
                   <TableCell>
                     <div>
                       <div className="font-medium">{survey.title}</div>
-                      <div className="text-sm text-gray-500">{survey.description}</div>
+                      <div className="text-sm text-muted-foreground">{survey.description}</div>
                     </div>
                   </TableCell>
                   <TableCell>{getStatusBadge(survey.status)}</TableCell>
@@ -442,14 +461,14 @@ export function SurveyManagement() {
                         {survey.scheduledDate}
                       </div>
                     ) : (
-                      <span className="text-gray-400">-</span>
+                      <span className="text-muted-foreground">-</span>
                     )}
                   </TableCell>
                   <TableCell>
                     <div className="text-sm">
                       {survey.responses}/{survey.totalSent}
                       {survey.totalSent > 0 && (
-                        <div className="text-xs text-gray-500">
+                        <div className="text-xs text-muted-foreground">
                           {Math.round((survey.responses / survey.totalSent) * 100)}% response rate
                         </div>
                       )}
@@ -458,7 +477,12 @@ export function SurveyManagement() {
                   <TableCell className="text-sm">{survey.createdAt}</TableCell>
                   <TableCell>
                     <div className="flex space-x-1">
-                      <Button variant="ghost" size="sm">
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => handleViewResponses(survey.id, survey.title)}
+                        disabled={survey.responses === 0}
+                      >
                         <Eye className="h-4 w-4" />
                       </Button>
                       <Button variant="ghost" size="sm">

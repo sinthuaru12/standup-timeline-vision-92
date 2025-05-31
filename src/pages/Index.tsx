@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { TopBar } from "@/components/TopBar";
@@ -63,15 +62,7 @@ const Index = () => {
   };
 
   const handleViewChange = (view: string) => {
-    if (view === "admin") {
-      setIsAdminMode(true);
-      setActiveView("user-management");
-    } else if (view === "profile" || view === "teams") {
-      setIsAdminMode(false);
-      setActiveView(view);
-    } else {
-      setActiveView(view);
-    }
+    setActiveView(view);
   };
 
   const handleAdminModeChange = (isAdmin: boolean) => {
@@ -118,7 +109,7 @@ const Index = () => {
 
   return (
     <SidebarProvider defaultOpen={false}>
-      <div className="min-h-screen flex w-full bg-gray-50">
+      <div className="min-h-screen flex w-full bg-background">
         <Sidebar 
           activeView={activeView} 
           onViewChange={handleViewChange}
