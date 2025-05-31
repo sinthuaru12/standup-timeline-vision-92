@@ -9,6 +9,11 @@ import { RiskAnalysis } from "@/components/RiskAnalysis";
 import { IndividualTimelines } from "@/components/IndividualTimelines";
 import { SprintDashboard } from "@/components/SprintDashboard";
 import { Settings } from "@/components/Settings";
+import { Profile } from "@/components/Profile";
+import { Teams } from "@/components/Teams";
+import { UserManagement } from "@/components/UserManagement";
+import { SurveyManagement } from "@/components/SurveyManagement";
+import { BroadcastMessages } from "@/components/BroadcastMessages";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 
 const Index = () => {
@@ -75,6 +80,18 @@ const Index = () => {
         return <SprintDashboard />;
       case "settings":
         return <Settings />;
+      case "profile":
+        return <Profile />;
+      case "teams":
+        return <Teams />;
+      case "user-management":
+        return <UserManagement />;
+      case "team-management":
+        return <TeamMemberManagement />;
+      case "survey-management":
+        return <SurveyManagement />;
+      case "broadcast-messages":
+        return <BroadcastMessages />;
       default:
         return <Dashboard />;
     }
