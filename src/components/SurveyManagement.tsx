@@ -1,289 +1,315 @@
-
 import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Switch } from "@/components/ui/switch";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Calendar, Clock, Plus, Send, Edit, Trash2, Eye, Users, User, X } from "lucide-react";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { SurveyResponses } from "@/components/SurveyResponses";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import { 
+  Plus, 
+  Eye, 
+  Edit, 
+  Trash2, 
+  Calendar as CalendarIcon, 
+  Clock, 
+  X,
+  Users,
+  Send,
+  Filter,
+  Search
+} from "lucide-react";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
-// Mock data for existing surveys
-const existingSurveys = [
-  {
-    id: 1,
-    title: "Team Satisfaction Survey",
-    description: "Quarterly team satisfaction assessment",
-    status: "Active",
-    recipients: "All Users (324)",
-    scheduledDate: "2024-01-15",
-    responses: 45,
-    totalSent: 324,
-    createdAt: "2024-01-10"
-  },
-  {
-    id: 2,
-    title: "Project Feedback Survey",
-    description: "End of project feedback collection",
-    status: "Completed",
-    recipients: "Development Team (12)",
-    scheduledDate: "2024-01-01",
-    responses: 12,
-    totalSent: 12,
-    createdAt: "2023-12-28"
-  },
-  {
-    id: 3,
-    title: "Annual Review Survey",
-    description: "Annual performance and satisfaction review",
-    status: "Draft",
-    recipients: "All Users (324)",
-    scheduledDate: null,
-    responses: 0,
-    totalSent: 0,
-    createdAt: "2024-01-12"
-  }
-];
+interface Survey {
+  id: number;
+  title: string;
+  description: string;
+  status: "draft" | "active" | "paused" | "completed";
+  createdAt: string;
+  recipients: number;
+  responses: number;
+  questions: string[];
+  deliveryType: "immediate" | "scheduled";
+  scheduleDetails?: {
+    type: "one-time" | "daily" | "weekly" | "monthly";
+    date?: Date;
+    times: string[];
+    weekdays?: string[];
+    monthDates?: number[];
+  };
+}
 
-// Mock users data
-const mockUsers = Array.from({ length: 324 }, (_, i) => ({
-  id: i + 1,
-  name: `User ${i + 1}`,
-  email: `user${i + 1}@company.com`,
-  department: ["Engineering", "Design", "Marketing", "Sales", "HR"][i % 5]
-}));
+interface Question {
+  id: string;
+  type: "text" | "multiple-choice" | "rating";
+  question: string;
+  options?: string[];
+  required: boolean;
+}
 
 export function SurveyManagement() {
+  const [surveys, setSurveys] = useState<Survey[]>([
+    {
+      id: 1,
+      title: "Team Satisfaction Survey",
+      description: "Monthly team satisfaction and feedback survey",
+      status: "active",
+      createdAt: "2024-01-15",
+      recipients: 25,
+      responses: 18,
+      questions: ["How satisfied are you with your current role?", "Rate team collaboration"],
+      deliveryType: "scheduled",
+      scheduleDetails: {
+        type: "monthly",
+        times: ["09:00"],
+        monthDates: [1]
+      }
+    },
+    {
+      id: 2,
+      title: "Project Feedback",
+      description: "Feedback on current project progress",
+      status: "draft",
+      createdAt: "2024-01-20",
+      recipients: 12,
+      responses: 0,
+      questions: ["Rate project management", "Suggest improvements"],
+      deliveryType: "immediate"
+    }
+  ]);
+
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [surveyTitle, setSurveyTitle] = useState("");
+  const [surveyDescription, setSurveyDescription] = useState("");
+  const [surveyStatus, setSurveyStatus] = useState<"draft" | "active" | "paused" | "completed">("draft");
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [deliveryType, setDeliveryType] = useState<"immediate" | "scheduled">("immediate");
+  const [scheduleType, setScheduleType] = useState<"one-time" | "daily" | "weekly" | "monthly">("one-time");
+  const [scheduleDate, setScheduleDate] = useState<Date>();
+  const [scheduleTimes, setScheduleTimes] = useState<string[]>(["09:00"]);
+  const [scheduleWeekdays, setScheduleWeekdays] = useState<string[]>([]);
+  const [scheduleMonthDates, setScheduleMonthDates] = useState<number[]>([]);
   const [recipientType, setRecipientType] = useState<"all" | "specific">("all");
-  const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
-  const [userSearch, setUserSearch] = useState("");
-  const [deliveryMode, setDeliveryMode] = useState<"immediate" | "scheduled">("immediate");
-  const [scheduleType, setScheduleType] = useState<"once" | "daily" | "weekly" | "monthly">("once");
-  const [selectedWeekdays, setSelectedWeekdays] = useState<string[]>([]);
-  const [selectedDates, setSelectedDates] = useState<string[]>([]);
-  const [dailyTimes, setDailyTimes] = useState<string[]>([""]);
-  const [weeklyTimes, setWeeklyTimes] = useState<string[]>([""]);
-  const [monthlyTimes, setMonthlyTimes] = useState<string[]>([""]);
-  const [viewingResponses, setViewingResponses] = useState<{ surveyId: number; surveyTitle: string } | null>(null);
-  
-  const [newSurvey, setNewSurvey] = useState({
-    title: "",
-    description: "",
-    questions: [""],
-    scheduleDate: "",
-    scheduleTime: "",
-    status: "draft"
-  });
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
 
-  const filteredUsers = mockUsers.filter(user => 
-    user.name.toLowerCase().includes(userSearch.toLowerCase()) ||
-    user.email.toLowerCase().includes(userSearch.toLowerCase()) ||
-    user.department.toLowerCase().includes(userSearch.toLowerCase())
-  );
+  const mockUsers = [
+    { id: "1", name: "John Doe", email: "john@example.com" },
+    { id: "2", name: "Jane Smith", email: "jane@example.com" },
+    { id: "3", name: "Mike Johnson", email: "mike@example.com" },
+    { id: "4", name: "Sarah Wilson", email: "sarah@example.com" },
+    { id: "5", name: "Tom Brown", email: "tom@example.com" },
+  ];
 
-  const weekdays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-  const monthDates = Array.from({ length: 31 }, (_, i) => (i + 1).toString());
-  const surveyStatuses = ["draft", "active", "paused", "completed"];
-
-  const handleUserSelection = (userId: number, checked: boolean) => {
-    if (checked) {
-      setSelectedUsers([...selectedUsers, userId]);
-    } else {
-      setSelectedUsers(selectedUsers.filter(id => id !== userId));
-    }
-  };
-
-  const handleWeekdaySelection = (weekday: string, checked: boolean) => {
-    if (checked) {
-      setSelectedWeekdays([...selectedWeekdays, weekday]);
-    } else {
-      setSelectedWeekdays(selectedWeekdays.filter(day => day !== weekday));
-    }
-  };
-
-  const handleDateSelection = (date: string, checked: boolean) => {
-    if (checked) {
-      setSelectedDates([...selectedDates, date]);
-    } else {
-      setSelectedDates(selectedDates.filter(d => d !== date));
-    }
-  };
+  const weekdays = [
+    { id: "monday", label: "Monday" },
+    { id: "tuesday", label: "Tuesday" },
+    { id: "wednesday", label: "Wednesday" },
+    { id: "thursday", label: "Thursday" },
+    { id: "friday", label: "Friday" },
+    { id: "saturday", label: "Saturday" },
+    { id: "sunday", label: "Sunday" },
+  ];
 
   const addQuestion = () => {
-    setNewSurvey({ ...newSurvey, questions: [...newSurvey.questions, ""] });
+    const newQuestion: Question = {
+      id: Date.now().toString(),
+      type: "text",
+      question: "",
+      required: false,
+    };
+    setQuestions([...questions, newQuestion]);
   };
 
-  const updateQuestion = (index: number, value: string) => {
-    const updatedQuestions = [...newSurvey.questions];
-    updatedQuestions[index] = value;
-    setNewSurvey({ ...newSurvey, questions: updatedQuestions });
+  const updateQuestion = (id: string, field: keyof Question, value: any) => {
+    setQuestions(questions.map(q => q.id === id ? { ...q, [field]: value } : q));
   };
 
-  const removeQuestion = (index: number) => {
-    const updatedQuestions = newSurvey.questions.filter((_, i) => i !== index);
-    setNewSurvey({ ...newSurvey, questions: updatedQuestions });
+  const removeQuestion = (id: string) => {
+    setQuestions(questions.filter(q => q.id !== id));
   };
 
-  const addTime = (type: "daily" | "weekly" | "monthly") => {
-    switch (type) {
-      case "daily":
-        setDailyTimes([...dailyTimes, ""]);
-        break;
-      case "weekly":
-        setWeeklyTimes([...weeklyTimes, ""]);
-        break;
-      case "monthly":
-        setMonthlyTimes([...monthlyTimes, ""]);
-        break;
+  const addTime = () => {
+    setScheduleTimes([...scheduleTimes, "09:00"]);
+  };
+
+  const updateTime = (index: number, time: string) => {
+    const newTimes = [...scheduleTimes];
+    newTimes[index] = time;
+    setScheduleTimes(newTimes);
+  };
+
+  const removeTime = (index: number) => {
+    if (scheduleTimes.length > 1) {
+      setScheduleTimes(scheduleTimes.filter((_, i) => i !== index));
     }
   };
 
-  const updateTime = (type: "daily" | "weekly" | "monthly", index: number, value: string) => {
-    switch (type) {
-      case "daily":
-        const updatedDaily = [...dailyTimes];
-        updatedDaily[index] = value;
-        setDailyTimes(updatedDaily);
-        break;
-      case "weekly":
-        const updatedWeekly = [...weeklyTimes];
-        updatedWeekly[index] = value;
-        setWeeklyTimes(updatedWeekly);
-        break;
-      case "monthly":
-        const updatedMonthly = [...monthlyTimes];
-        updatedMonthly[index] = value;
-        setMonthlyTimes(updatedMonthly);
-        break;
+  const handleWeekdayChange = (weekday: string, checked: boolean) => {
+    if (checked) {
+      setScheduleWeekdays([...scheduleWeekdays, weekday]);
+    } else {
+      setScheduleWeekdays(scheduleWeekdays.filter(w => w !== weekday));
     }
   };
 
-  const removeTime = (type: "daily" | "weekly" | "monthly", index: number) => {
-    switch (type) {
-      case "daily":
-        if (dailyTimes.length > 1) {
-          setDailyTimes(dailyTimes.filter((_, i) => i !== index));
-        }
-        break;
-      case "weekly":
-        if (weeklyTimes.length > 1) {
-          setWeeklyTimes(weeklyTimes.filter((_, i) => i !== index));
-        }
-        break;
-      case "monthly":
-        if (monthlyTimes.length > 1) {
-          setMonthlyTimes(monthlyTimes.filter((_, i) => i !== index));
-        }
-        break;
+  const handleMonthDateChange = (date: number, checked: boolean) => {
+    if (checked) {
+      setScheduleMonthDates([...scheduleMonthDates, date]);
+    } else {
+      setScheduleMonthDates(scheduleMonthDates.filter(d => d !== date));
     }
+  };
+
+  const resetForm = () => {
+    setSurveyTitle("");
+    setSurveyDescription("");
+    setSurveyStatus("draft");
+    setQuestions([]);
+    setDeliveryType("immediate");
+    setScheduleType("one-time");
+    setScheduleDate(undefined);
+    setScheduleTimes(["09:00"]);
+    setScheduleWeekdays([]);
+    setScheduleMonthDates([]);
+    setRecipientType("all");
+    setSelectedUsers([]);
   };
 
   const handleCreateSurvey = () => {
-    console.log("Creating survey:", {
-      ...newSurvey,
-      recipientType,
-      selectedUsers: recipientType === "specific" ? selectedUsers : null,
-      deliveryMode,
-      scheduleType: deliveryMode === "scheduled" ? scheduleType : null,
-      selectedWeekdays: scheduleType === "weekly" ? selectedWeekdays : null,
-      selectedDates: scheduleType === "monthly" ? selectedDates : null,
-      dailyTimes: scheduleType === "daily" ? dailyTimes : null,
-      weeklyTimes: scheduleType === "weekly" ? weeklyTimes : null,
-      monthlyTimes: scheduleType === "monthly" ? monthlyTimes : null
-    });
+    const newSurvey: Survey = {
+      id: Date.now(),
+      title: surveyTitle,
+      description: surveyDescription,
+      status: surveyStatus,
+      createdAt: new Date().toISOString().split('T')[0],
+      recipients: recipientType === "all" ? mockUsers.length : selectedUsers.length,
+      responses: 0,
+      questions: questions.map(q => q.question),
+      deliveryType,
+      scheduleDetails: deliveryType === "scheduled" ? {
+        type: scheduleType,
+        date: scheduleDate,
+        times: scheduleTimes,
+        weekdays: scheduleWeekdays,
+        monthDates: scheduleMonthDates
+      } : undefined
+    };
+
+    setSurveys([...surveys, newSurvey]);
     setIsCreateDialogOpen(false);
+    resetForm();
   };
 
-  const handleViewResponses = (surveyId: number, surveyTitle: string) => {
-    setViewingResponses({ surveyId, surveyTitle });
+  const getStatusColor = (status: string) => {
+    const colors = {
+      draft: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300",
+      active: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
+      paused: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300",
+      completed: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300",
+    };
+    return colors[status as keyof typeof colors] || colors.draft;
   };
 
-  const handleBackToSurveys = () => {
-    setViewingResponses(null);
-  };
+  const filteredSurveys = surveys.filter(survey => {
+    const matchesSearch = survey.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         survey.description.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus = filterStatus === "all" || survey.status === filterStatus;
+    return matchesSearch && matchesStatus;
+  });
 
-  const getStatusBadge = (status: string) => {
-    const variants = {
-      "Active": "default",
-      "Completed": "secondary",
-      "Draft": "outline",
-      "Paused": "destructive"
-    } as const;
-    return <Badge variant={variants[status as keyof typeof variants] || "outline"}>{status}</Badge>;
-  };
-
-  if (viewingResponses) {
-    return (
-      <SurveyResponses
-        surveyId={viewingResponses.surveyId}
-        surveyTitle={viewingResponses.surveyTitle}
-        onBack={handleBackToSurveys}
-      />
-    );
-  }
+  const filteredUsers = mockUsers.filter(user =>
+    user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    user.email.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="space-y-4 sm:space-y-6 p-2 sm:p-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Survey Management</h1>
-          <p className="text-muted-foreground">Create and manage surveys for your organization</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">Survey Management</h1>
+          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">Create and manage team surveys</p>
         </div>
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
-            <Button>
+            <Button className="w-full sm:w-auto">
               <Plus className="h-4 w-4 mr-2" />
-              Create Survey
+              <span className="hidden sm:inline">Create Survey</span>
+              <span className="sm:hidden">Create</span>
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-background border-border">
+          <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
             <DialogHeader>
-              <DialogTitle className="text-foreground">Create New Survey</DialogTitle>
-              <DialogDescription className="text-muted-foreground">
-                Create a new survey to collect feedback from your team members
-              </DialogDescription>
+              <DialogTitle className="text-lg sm:text-xl">Create New Survey</DialogTitle>
             </DialogHeader>
-            <div className="space-y-6">
+            
+            <div className="space-y-4 sm:space-y-6">
+              {/* Basic Info */}
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="title" className="text-foreground">Survey Title</Label>
+                  <Label htmlFor="title" className="text-sm font-medium">Survey Title</Label>
                   <Input
                     id="title"
-                    value={newSurvey.title}
-                    onChange={(e) => setNewSurvey({ ...newSurvey, title: e.target.value })}
+                    value={surveyTitle}
+                    onChange={(e) => setSurveyTitle(e.target.value)}
                     placeholder="Enter survey title"
-                    className="bg-background border-input text-foreground"
+                    className="mt-1"
                   />
                 </div>
+                
                 <div>
-                  <Label htmlFor="description" className="text-foreground">Description</Label>
+                  <Label htmlFor="description" className="text-sm font-medium">Description</Label>
                   <Textarea
                     id="description"
-                    value={newSurvey.description}
-                    onChange={(e) => setNewSurvey({ ...newSurvey, description: e.target.value })}
+                    value={surveyDescription}
+                    onChange={(e) => setSurveyDescription(e.target.value)}
                     placeholder="Enter survey description"
-                    className="bg-background border-input text-foreground"
+                    className="mt-1"
+                    rows={3}
                   />
                 </div>
+
                 <div>
-                  <Label htmlFor="status" className="text-foreground">Status</Label>
-                  <Select value={newSurvey.status} onValueChange={(value) => setNewSurvey({ ...newSurvey, status: value })}>
-                    <SelectTrigger className="bg-background border-input text-foreground">
-                      <SelectValue placeholder="Select status" />
+                  <Label htmlFor="status" className="text-sm font-medium">Status</Label>
+                  <Select value={surveyStatus} onValueChange={(value: any) => setSurveyStatus(value)}>
+                    <SelectTrigger className="mt-1">
+                      <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-background border-border">
-                      {surveyStatuses.map((status) => (
-                        <SelectItem key={status} value={status} className="text-foreground hover:bg-accent">
-                          {status.charAt(0).toUpperCase() + status.slice(1)}
-                        </SelectItem>
-                      ))}
+                    <SelectContent>
+                      <SelectItem value="draft">Draft</SelectItem>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="paused">Paused</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -291,201 +317,247 @@ export function SurveyManagement() {
 
               {/* Questions Section */}
               <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <Label className="text-base font-semibold text-foreground">Questions</Label>
-                  <Button variant="outline" size="sm" onClick={addQuestion}>
-                    <Plus className="h-4 w-4 mr-1" />
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  <Label className="text-sm font-medium">Questions</Label>
+                  <Button onClick={addQuestion} size="sm" variant="outline" className="w-full sm:w-auto">
+                    <Plus className="h-4 w-4 mr-2" />
                     Add Question
                   </Button>
                 </div>
-                {newSurvey.questions.map((question, index) => (
-                  <div key={index} className="flex gap-2">
-                    <Textarea
-                      value={question}
-                      onChange={(e) => updateQuestion(index, e.target.value)}
-                      placeholder={`Question ${index + 1}`}
-                      className="flex-1 bg-background border-input text-foreground"
-                    />
-                    {newSurvey.questions.length > 1 && (
-                      <Button variant="outline" size="sm" onClick={() => removeQuestion(index)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                
+                <ScrollArea className="h-32 sm:h-48 border rounded-md p-2 sm:p-4">
+                  <div className="space-y-3 sm:space-y-4">
+                    {questions.map((question, index) => (
+                      <Card key={question.id} className="p-3 sm:p-4">
+                        <div className="space-y-3">
+                          <div className="flex flex-col sm:flex-row sm:items-start gap-2">
+                            <div className="flex-1 space-y-2">
+                              <Input
+                                value={question.question}
+                                onChange={(e) => updateQuestion(question.id, "question", e.target.value)}
+                                placeholder="Enter question"
+                                className="text-sm"
+                              />
+                              <div className="flex flex-col sm:flex-row gap-2">
+                                <Select 
+                                  value={question.type} 
+                                  onValueChange={(value) => updateQuestion(question.id, "type", value)}
+                                >
+                                  <SelectTrigger className="w-full sm:w-40">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="text">Text</SelectItem>
+                                    <SelectItem value="multiple-choice">Multiple Choice</SelectItem>
+                                    <SelectItem value="rating">Rating</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <div className="flex items-center space-x-2">
+                                  <Switch
+                                    checked={question.required}
+                                    onCheckedChange={(checked) => updateQuestion(question.id, "required", checked)}
+                                  />
+                                  <Label className="text-xs">Required</Label>
+                                </div>
+                              </div>
+                            </div>
+                            <Button
+                              onClick={() => removeQuestion(question.id)}
+                              size="sm"
+                              variant="ghost"
+                              className="text-red-600 hover:text-red-700 h-8 w-8 p-0"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                    {questions.length === 0 && (
+                      <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
+                        No questions added yet. Click "Add Question" to get started.
+                      </p>
                     )}
                   </div>
-                ))}
+                </ScrollArea>
               </div>
 
               {/* Recipients Section */}
               <div className="space-y-4">
-                <Label className="text-base font-semibold text-foreground">Recipients</Label>
-                <RadioGroup value={recipientType} onValueChange={(value: "all" | "specific") => setRecipientType(value)}>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="all" id="all-users" />
-                    <Label htmlFor="all-users" className="flex items-center text-foreground">
-                      <Users className="h-4 w-4 mr-1" />
-                      All Users (324)
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="specific" id="specific-users" />
-                    <Label htmlFor="specific-users" className="flex items-center text-foreground">
-                      <User className="h-4 w-4 mr-1" />
+                <Label className="text-sm font-medium">Recipients</Label>
+                <div className="space-y-3">
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <Button
+                      variant={recipientType === "all" ? "default" : "outline"}
+                      onClick={() => setRecipientType("all")}
+                      size="sm"
+                      className="w-full sm:w-auto"
+                    >
+                      <Users className="h-4 w-4 mr-2" />
+                      All Users
+                    </Button>
+                    <Button
+                      variant={recipientType === "specific" ? "default" : "outline"}
+                      onClick={() => setRecipientType("specific")}
+                      size="sm"
+                      className="w-full sm:w-auto"
+                    >
+                      <Users className="h-4 w-4 mr-2" />
                       Specific Users
-                    </Label>
+                    </Button>
                   </div>
-                </RadioGroup>
 
-                {recipientType === "specific" && (
-                  <div className="space-y-3">
-                    <Input
-                      placeholder="Search users..."
-                      value={userSearch}
-                      onChange={(e) => setUserSearch(e.target.value)}
-                      className="bg-background border-input text-foreground"
-                    />
-                    <div className="border border-border rounded-md p-3 max-h-48 overflow-y-auto bg-background">
-                      <div className="space-y-2">
-                        {filteredUsers.slice(0, 50).map((user) => (
-                          <div key={user.id} className="flex items-center space-x-2">
-                            <Checkbox
-                              id={`user-${user.id}`}
-                              checked={selectedUsers.includes(user.id)}
-                              onCheckedChange={(checked) => handleUserSelection(user.id, checked as boolean)}
-                            />
-                            <Label htmlFor={`user-${user.id}`} className="text-sm text-foreground">
-                              {user.name} ({user.email}) - {user.department}
-                            </Label>
-                          </div>
-                        ))}
-                        {filteredUsers.length > 50 && (
-                          <p className="text-sm text-muted-foreground">Showing first 50 results. Use search to narrow down.</p>
-                        )}
-                      </div>
+                  {recipientType === "specific" && (
+                    <div className="space-y-3">
+                      <Input
+                        placeholder="Search users..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="text-sm"
+                      />
+                      <ScrollArea className="h-32 border rounded-md p-2">
+                        <div className="space-y-2">
+                          {filteredUsers.map((user) => (
+                            <div key={user.id} className="flex items-center space-x-2 p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded">
+                              <Checkbox
+                                checked={selectedUsers.includes(user.id)}
+                                onCheckedChange={(checked) => {
+                                  if (checked) {
+                                    setSelectedUsers([...selectedUsers, user.id]);
+                                  } else {
+                                    setSelectedUsers(selectedUsers.filter(id => id !== user.id));
+                                  }
+                                }}
+                              />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium truncate">{user.name}</p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user.email}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </ScrollArea>
                     </div>
-                    {selectedUsers.length > 0 && (
-                      <p className="text-sm text-muted-foreground">{selectedUsers.length} users selected</p>
-                    )}
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
 
-              {/* Delivery Mode Section */}
+              {/* Delivery Section */}
               <div className="space-y-4">
-                <Label className="text-base font-semibold text-foreground">Delivery Mode</Label>
-                <RadioGroup value={deliveryMode} onValueChange={(value: "immediate" | "scheduled") => setDeliveryMode(value)}>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="immediate" id="immediate" />
-                    <Label htmlFor="immediate" className="flex items-center text-foreground">
-                      <Send className="h-4 w-4 mr-1" />
-                      Send Immediately
-                    </Label>
+                <Label className="text-sm font-medium">Delivery</Label>
+                <div className="space-y-3">
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <Button
+                      variant={deliveryType === "immediate" ? "default" : "outline"}
+                      onClick={() => setDeliveryType("immediate")}
+                      size="sm"
+                      className="w-full sm:w-auto"
+                    >
+                      <Send className="h-4 w-4 mr-2" />
+                      Send Now
+                    </Button>
+                    <Button
+                      variant={deliveryType === "scheduled" ? "default" : "outline"}
+                      onClick={() => setDeliveryType("scheduled")}
+                      size="sm"
+                      className="w-full sm:w-auto"
+                    >
+                      <Calendar className="h-4 w-4 mr-2" />
+                      Schedule
+                    </Button>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="scheduled" id="scheduled" />
-                    <Label htmlFor="scheduled" className="flex items-center text-foreground">
-                      <Calendar className="h-4 w-4 mr-1" />
-                      Schedule Delivery
-                    </Label>
-                  </div>
-                </RadioGroup>
 
-                {deliveryMode === "scheduled" && (
-                  <div className="space-y-4 pl-6">
-                    <Select value={scheduleType} onValueChange={(value: "once" | "daily" | "weekly" | "monthly") => setScheduleType(value)}>
-                      <SelectTrigger className="bg-background border-input text-foreground">
-                        <SelectValue placeholder="Select schedule type" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-background border-border">
-                        <SelectItem value="once" className="text-foreground hover:bg-accent">One Time</SelectItem>
-                        <SelectItem value="daily" className="text-foreground hover:bg-accent">Daily</SelectItem>
-                        <SelectItem value="weekly" className="text-foreground hover:bg-accent">Weekly</SelectItem>
-                        <SelectItem value="monthly" className="text-foreground hover:bg-accent">Monthly</SelectItem>
-                      </SelectContent>
-                    </Select>
+                  {deliveryType === "scheduled" && (
+                    <div className="space-y-4 p-3 sm:p-4 border rounded-md">
+                      <Select value={scheduleType} onValueChange={(value: any) => setScheduleType(value)}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="one-time">One-time</SelectItem>
+                          <SelectItem value="daily">Daily</SelectItem>
+                          <SelectItem value="weekly">Weekly</SelectItem>
+                          <SelectItem value="monthly">Monthly</SelectItem>
+                        </SelectContent>
+                      </Select>
 
-                    {scheduleType === "once" && (
-                      <div className="grid grid-cols-2 gap-4">
+                      {scheduleType === "one-time" && (
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button variant="outline" className="w-full justify-start text-left font-normal">
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {scheduleDate ? format(scheduleDate, "PPP") : "Pick a date"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={scheduleDate}
+                              onSelect={setScheduleDate}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      )}
+
+                      {scheduleType === "weekly" && (
                         <div>
-                          <Label className="text-foreground">Date</Label>
-                          <Input
-                            type="date"
-                            value={newSurvey.scheduleDate}
-                            onChange={(e) => setNewSurvey({ ...newSurvey, scheduleDate: e.target.value })}
-                            className="bg-background border-input text-foreground"
-                          />
+                          <Label className="text-sm font-medium mb-2 block">Select Days</Label>
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                            {weekdays.map((day) => (
+                              <div key={day.id} className="flex items-center space-x-2">
+                                <Checkbox
+                                  checked={scheduleWeekdays.includes(day.id)}
+                                  onCheckedChange={(checked) => handleWeekdayChange(day.id, !!checked)}
+                                />
+                                <Label className="text-sm">{day.label}</Label>
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                        <div>
-                          <Label className="text-foreground">Time</Label>
-                          <Input
-                            type="time"
-                            value={newSurvey.scheduleTime}
-                            onChange={(e) => setNewSurvey({ ...newSurvey, scheduleTime: e.target.value })}
-                            className="bg-background border-input text-foreground"
-                          />
-                        </div>
-                      </div>
-                    )}
+                      )}
 
-                    {scheduleType === "daily" && (
-                      <div className="space-y-3">
-                        <div className="flex justify-between items-center">
-                          <Label className="text-foreground">Times</Label>
-                          <Button variant="outline" size="sm" onClick={() => addTime("daily")}>
-                            <Plus className="h-4 w-4 mr-1" />
+                      {scheduleType === "monthly" && (
+                        <div>
+                          <Label className="text-sm font-medium mb-2 block">Select Dates</Label>
+                          <div className="grid grid-cols-7 gap-1">
+                            {Array.from({ length: 31 }, (_, i) => i + 1).map((date) => (
+                              <div key={date} className="flex items-center justify-center">
+                                <Checkbox
+                                  checked={scheduleMonthDates.includes(date)}
+                                  onCheckedChange={(checked) => handleMonthDateChange(date, !!checked)}
+                                />
+                                <Label className="text-xs ml-1">{date}</Label>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      <div>
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
+                          <Label className="text-sm font-medium">Times</Label>
+                          <Button onClick={addTime} size="sm" variant="outline" className="w-full sm:w-auto">
+                            <Plus className="h-4 w-4 mr-2" />
                             Add Time
                           </Button>
                         </div>
-                        {dailyTimes.map((time, index) => (
-                          <div key={index} className="flex gap-2">
-                            <Input
-                              type="time"
-                              value={time}
-                              onChange={(e) => updateTime("daily", index, e.target.value)}
-                              className="bg-background border-input text-foreground"
-                            />
-                            {dailyTimes.length > 1 && (
-                              <Button variant="outline" size="sm" onClick={() => removeTime("daily", index)}>
-                                <X className="h-4 w-4" />
-                              </Button>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {scheduleType === "weekly" && (
-                      <div className="space-y-3">
-                        <Label className="text-foreground">Select Weekdays</Label>
-                        <div className="grid grid-cols-2 gap-2">
-                          {weekdays.map((day) => (
-                            <div key={day} className="flex items-center space-x-2">
-                              <Checkbox
-                                id={day}
-                                checked={selectedWeekdays.includes(day)}
-                                onCheckedChange={(checked) => handleWeekdaySelection(day, checked as boolean)}
-                              />
-                              <Label htmlFor={day} className="text-sm text-foreground">{day}</Label>
-                            </div>
-                          ))}
-                        </div>
-                        <div className="space-y-3">
-                          <div className="flex justify-between items-center">
-                            <Label className="text-foreground">Times</Label>
-                            <Button variant="outline" size="sm" onClick={() => addTime("weekly")}>
-                              <Plus className="h-4 w-4 mr-1" />
-                              Add Time
-                            </Button>
-                          </div>
-                          {weeklyTimes.map((time, index) => (
+                        <div className="space-y-2">
+                          {scheduleTimes.map((time, index) => (
                             <div key={index} className="flex gap-2">
                               <Input
                                 type="time"
                                 value={time}
-                                onChange={(e) => updateTime("weekly", index, e.target.value)}
-                                className="bg-background border-input text-foreground"
+                                onChange={(e) => updateTime(index, e.target.value)}
+                                className="flex-1"
                               />
-                              {weeklyTimes.length > 1 && (
-                                <Button variant="outline" size="sm" onClick={() => removeTime("weekly", index)}>
+                              {scheduleTimes.length > 1 && (
+                                <Button
+                                  onClick={() => removeTime(index)}
+                                  size="sm"
+                                  variant="ghost"
+                                  className="text-red-600 hover:text-red-700 px-2"
+                                >
                                   <X className="h-4 w-4" />
                                 </Button>
                               )}
@@ -493,59 +565,17 @@ export function SurveyManagement() {
                           ))}
                         </div>
                       </div>
-                    )}
-
-                    {scheduleType === "monthly" && (
-                      <div className="space-y-3">
-                        <Label className="text-foreground">Select Dates</Label>
-                        <div className="grid grid-cols-8 gap-2 max-h-32 overflow-y-auto">
-                          {monthDates.map((date) => (
-                            <div key={date} className="flex items-center space-x-1">
-                              <Checkbox
-                                id={`date-${date}`}
-                                checked={selectedDates.includes(date)}
-                                onCheckedChange={(checked) => handleDateSelection(date, checked as boolean)}
-                              />
-                              <Label htmlFor={`date-${date}`} className="text-sm text-foreground">{date}</Label>
-                            </div>
-                          ))}
-                        </div>
-                        <div className="space-y-3">
-                          <div className="flex justify-between items-center">
-                            <Label className="text-foreground">Times</Label>
-                            <Button variant="outline" size="sm" onClick={() => addTime("monthly")}>
-                              <Plus className="h-4 w-4 mr-1" />
-                              Add Time
-                            </Button>
-                          </div>
-                          {monthlyTimes.map((time, index) => (
-                            <div key={index} className="flex gap-2">
-                              <Input
-                                type="time"
-                                value={time}
-                                onChange={(e) => updateTime("monthly", index, e.target.value)}
-                                className="bg-background border-input text-foreground"
-                              />
-                              {monthlyTimes.length > 1 && (
-                                <Button variant="outline" size="sm" onClick={() => removeTime("monthly", index)}>
-                                  <X className="h-4 w-4" />
-                                </Button>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
+                    </div>
+                  )}
+                </div>
               </div>
 
-              <div className="flex justify-end space-x-2">
-                <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={handleCreateSurvey}>
+              <div className="flex flex-col sm:flex-row gap-2 pt-4">
+                <Button onClick={handleCreateSurvey} className="w-full sm:flex-1">
                   Create Survey
+                </Button>
+                <Button onClick={() => setIsCreateDialogOpen(false)} variant="outline" className="w-full sm:w-auto">
+                  Cancel
                 </Button>
               </div>
             </div>
@@ -553,82 +583,147 @@ export function SurveyManagement() {
         </Dialog>
       </div>
 
-      {/* Surveys Table */}
-      <Card className="bg-card border-border">
-        <CardHeader>
-          <CardTitle className="text-foreground">Existing Surveys</CardTitle>
-          <CardDescription className="text-muted-foreground">Manage and view all surveys</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow className="border-border">
-                <TableHead className="text-foreground">Title</TableHead>
-                <TableHead className="text-foreground">Status</TableHead>
-                <TableHead className="text-foreground">Recipients</TableHead>
-                <TableHead className="text-foreground">Scheduled Date</TableHead>
-                <TableHead className="text-foreground">Responses</TableHead>
-                <TableHead className="text-foreground">Created</TableHead>
-                <TableHead className="text-foreground">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {existingSurveys.map((survey) => (
-                <TableRow key={survey.id} className="border-border">
-                  <TableCell>
-                    <div>
-                      <div className="font-medium text-foreground">{survey.title}</div>
-                      <div className="text-sm text-muted-foreground">{survey.description}</div>
-                    </div>
-                  </TableCell>
-                  <TableCell>{getStatusBadge(survey.status)}</TableCell>
-                  <TableCell className="text-sm text-foreground">{survey.recipients}</TableCell>
-                  <TableCell>
-                    {survey.scheduledDate ? (
-                      <div className="flex items-center text-sm text-foreground">
-                        <Calendar className="h-4 w-4 mr-1" />
-                        {survey.scheduledDate}
-                      </div>
-                    ) : (
-                      <span className="text-muted-foreground">-</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-sm text-foreground">
-                      {survey.responses}/{survey.totalSent}
-                      {survey.totalSent > 0 && (
-                        <div className="text-xs text-muted-foreground">
-                          {Math.round((survey.responses / survey.totalSent) * 100)}% response rate
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+        <div className="flex-1">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Input
+              placeholder="Search surveys..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+        </div>
+        <div className="w-full sm:w-48">
+          <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <SelectTrigger>
+              <Filter className="h-4 w-4 mr-2" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="draft">Draft</SelectItem>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="paused">Paused</SelectItem>
+              <SelectItem value="completed">Completed</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* Mobile Cards View */}
+      <div className="block sm:hidden space-y-4">
+        {filteredSurveys.map((survey) => (
+          <Card key={survey.id} className="p-4">
+            <div className="space-y-3">
+              <div className="flex items-start justify-between">
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 truncate">{survey.title}</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">{survey.description}</p>
+                </div>
+                <Badge className={cn("ml-2 shrink-0", getStatusColor(survey.status))}>
+                  {survey.status}
+                </Badge>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-gray-500 dark:text-gray-400">Recipients:</span>
+                  <span className="ml-1 font-medium">{survey.recipients}</span>
+                </div>
+                <div>
+                  <span className="text-gray-500 dark:text-gray-400">Responses:</span>
+                  <span className="ml-1 font-medium">{survey.responses}</span>
+                </div>
+                <div>
+                  <span className="text-gray-500 dark:text-gray-400">Created:</span>
+                  <span className="ml-1 font-medium">{survey.createdAt}</span>
+                </div>
+                <div>
+                  <span className="text-gray-500 dark:text-gray-400">Delivery:</span>
+                  <span className="ml-1 font-medium capitalize">{survey.deliveryType}</span>
+                </div>
+              </div>
+              
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" className="flex-1">
+                  <Eye className="h-4 w-4 mr-2" />
+                  View
+                </Button>
+                <Button size="sm" variant="outline" className="flex-1">
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit
+                </Button>
+                <Button size="sm" variant="outline" className="text-red-600 hover:text-red-700">
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      {/* Desktop Table View */}
+      <div className="hidden sm:block">
+        <Card>
+          <CardHeader>
+            <CardTitle>Surveys</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Title</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Recipients</TableHead>
+                    <TableHead>Responses</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead>Delivery</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredSurveys.map((survey) => (
+                    <TableRow key={survey.id}>
+                      <TableCell>
+                        <div>
+                          <div className="font-medium text-gray-900 dark:text-gray-100">{survey.title}</div>
+                          <div className="text-sm text-gray-600 dark:text-gray-400 max-w-xs truncate">{survey.description}</div>
                         </div>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-sm text-foreground">{survey.createdAt}</TableCell>
-                  <TableCell>
-                    <div className="flex space-x-1">
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => handleViewResponses(survey.id, survey.title)}
-                        disabled={survey.responses === 0}
-                        className="text-foreground hover:bg-accent"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm" className="text-foreground hover:bg-accent">
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm" className="text-foreground hover:bg-accent">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={getStatusColor(survey.status)}>
+                          {survey.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{survey.recipients}</TableCell>
+                      <TableCell>{survey.responses}</TableCell>
+                      <TableCell>{survey.createdAt}</TableCell>
+                      <TableCell className="capitalize">{survey.deliveryType}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end space-x-2">
+                          <Button size="sm" variant="ghost">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button size="sm" variant="ghost">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button size="sm" variant="ghost" className="text-red-600 hover:text-red-700">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
