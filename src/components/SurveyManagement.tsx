@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Calendar, Clock, Plus, Send, Edit, Trash2, Eye, Users, User, X } from "lucide-react";
+import { Calendar, Clock, Plus, Send, Edit, Trash2, Eye, Users, User, X, MessageSquare, CalendarClock } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { SurveyResponses } from "@/components/SurveyResponses";
@@ -321,6 +321,69 @@ export function SurveyManagement() {
         </TooltipProvider>
       );
     }
+  };
+
+  const formatResponsesWithCount = (responses: number, totalSent: number) => {
+    return (
+      <div className="flex items-center space-x-2">
+        <MessageSquare className="h-4 w-4 text-blue-600" />
+        <div className="space-y-1">
+          <div className="text-sm font-medium text-foreground">
+            {responses} Responses
+          </div>
+          {totalSent > 0 && (
+            <div className="text-xs text-muted-foreground">
+              {Math.round((responses / totalSent) * 100)}% response rate
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const formatScheduleDetails = (survey: any) => {
+    if (!survey.scheduledDate) {
+      return (
+        <div className="flex items-center text-sm text-muted-foreground">
+          <Send className="h-4 w-4 mr-1" />
+          Immediate
+        </div>
+      );
+    }
+
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="flex items-center text-sm text-foreground cursor-pointer">
+              <CalendarClock className="h-4 w-4 mr-1" />
+              <div className="space-y-1">
+                <div>{survey.scheduledDate}</div>
+                <div className="text-xs text-muted-foreground">
+                  Scheduled delivery
+                </div>
+              </div>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent className="max-w-xs">
+            <div className="space-y-1">
+              <div className="font-medium">Delivery Schedule:</div>
+              <div className="text-sm">
+                Date: {survey.scheduledDate}
+              </div>
+              <div className="text-sm">
+                Type: {survey.scheduleType || "One-time"}
+              </div>
+              {survey.deliveryTimes && (
+                <div className="text-sm">
+                  Times: {survey.deliveryTimes.join(", ")}
+                </div>
+              )}
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
   };
 
   if (viewingResponses) {
@@ -714,20 +777,14 @@ export function SurveyManagement() {
                         {formatRecipients(survey.recipients)}
                       </div>
                       
-                      {survey.scheduledDate && (
-                        <div className="flex items-center text-sm text-foreground">
-                          <Calendar className="h-4 w-4 mr-1" />
-                          {survey.scheduledDate}
-                        </div>
-                      )}
+                      <div>
+                        <span className="text-xs font-medium text-muted-foreground">Schedule:</span>
+                        {formatScheduleDetails(survey)}
+                      </div>
                       
-                      <div className="text-sm text-foreground">
-                        Responses: {survey.responses}/{survey.totalSent}
-                        {survey.totalSent > 0 && (
-                          <span className="text-xs text-muted-foreground ml-1">
-                            ({Math.round((survey.responses / survey.totalSent) * 100)}%)
-                          </span>
-                        )}
+                      <div>
+                        <span className="text-xs font-medium text-muted-foreground">Responses:</span>
+                        {formatResponsesWithCount(survey.responses, survey.totalSent)}
                       </div>
                       
                       <div className="text-xs text-muted-foreground">
@@ -766,7 +823,7 @@ export function SurveyManagement() {
                   <TableHead className="text-foreground">Title</TableHead>
                   <TableHead className="text-foreground">Status</TableHead>
                   <TableHead className="text-foreground">Recipients</TableHead>
-                  <TableHead className="text-foreground">Scheduled Date</TableHead>
+                  <TableHead className="text-foreground">Schedule</TableHead>
                   <TableHead className="text-foreground">Responses</TableHead>
                   <TableHead className="text-foreground">Created</TableHead>
                   <TableHead className="text-foreground">Actions</TableHead>
@@ -783,26 +840,8 @@ export function SurveyManagement() {
                     </TableCell>
                     <TableCell>{getStatusBadge(survey.status)}</TableCell>
                     <TableCell>{formatRecipients(survey.recipients)}</TableCell>
-                    <TableCell>
-                      {survey.scheduledDate ? (
-                        <div className="flex items-center text-sm text-foreground">
-                          <Calendar className="h-4 w-4 mr-1" />
-                          {survey.scheduledDate}
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm text-foreground">
-                        {survey.responses}/{survey.totalSent}
-                        {survey.totalSent > 0 && (
-                          <div className="text-xs text-muted-foreground">
-                            {Math.round((survey.responses / survey.totalSent) * 100)}% response rate
-                          </div>
-                        )}
-                      </div>
-                    </TableCell>
+                    <TableCell>{formatScheduleDetails(survey)}</TableCell>
+                    <TableCell>{formatResponsesWithCount(survey.responses, survey.totalSent)}</TableCell>
                     <TableCell className="text-sm text-foreground">{survey.createdAt}</TableCell>
                     <TableCell>
                       <div className="flex space-x-1">
