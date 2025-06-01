@@ -12,6 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Calendar, Clock, Plus, Send, Edit, Trash2, Eye, Users, User, X } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { SurveyResponses } from "@/components/SurveyResponses";
 
 // Mock data for existing surveys
@@ -78,12 +79,15 @@ export function SurveyManagement() {
   const [userSearch, setUserSearch] = useState("");
   const [deliveryMode, setDeliveryMode] = useState<"immediate" | "scheduled">("immediate");
   const [scheduleType, setScheduleType] = useState<"once" | "daily" | "weekly" | "monthly">("once");
-  const [selectedWeekdays, setSelectedWeekdays] = useState<string[]>([]);
-  const [selectedDates, setSelectedDates] = useState<string[]>([]);
+  
+  // New structure for weekly scheduling - object with weekday as key and array of times as value
+  const [weeklySchedule, setWeeklySchedule] = useState<Record<string, string[]>>({});
+  
+  // New structure for monthly scheduling - object with date as key and array of times as value
+  const [monthlySchedule, setMonthlySchedule] = useState<Record<string, string[]>>({});
+  
   const [onceTimes, setOnceTimes] = useState<string[]>([""]);
   const [dailyTimes, setDailyTimes] = useState<string[]>([""]);
-  const [weeklyTimes, setWeeklyTimes] = useState<string[]>([""]);
-  const [monthlyTimes, setMonthlyTimes] = useState<string[]>([""]);
   const [viewingResponses, setViewingResponses] = useState<{ surveyId: number; surveyTitle: string } | null>(null);
   
   const [newSurvey, setNewSurvey] = useState({
@@ -112,19 +116,77 @@ export function SurveyManagement() {
     }
   };
 
-  const handleWeekdaySelection = (weekday: string, checked: boolean) => {
+  // New functions for weekly scheduling
+  const addWeeklyTime = (weekday: string) => {
+    setWeeklySchedule(prev => ({
+      ...prev,
+      [weekday]: [...(prev[weekday] || []), ""]
+    }));
+  };
+
+  const updateWeeklyTime = (weekday: string, timeIndex: number, value: string) => {
+    setWeeklySchedule(prev => ({
+      ...prev,
+      [weekday]: prev[weekday].map((time, index) => index === timeIndex ? value : time)
+    }));
+  };
+
+  const removeWeeklyTime = (weekday: string, timeIndex: number) => {
+    setWeeklySchedule(prev => ({
+      ...prev,
+      [weekday]: prev[weekday].filter((_, index) => index !== timeIndex)
+    }));
+  };
+
+  const toggleWeekday = (weekday: string, checked: boolean) => {
     if (checked) {
-      setSelectedWeekdays([...selectedWeekdays, weekday]);
+      setWeeklySchedule(prev => ({
+        ...prev,
+        [weekday]: [""]
+      }));
     } else {
-      setSelectedWeekdays(selectedWeekdays.filter(day => day !== weekday));
+      setWeeklySchedule(prev => {
+        const newSchedule = { ...prev };
+        delete newSchedule[weekday];
+        return newSchedule;
+      });
     }
   };
 
-  const handleDateSelection = (date: string, checked: boolean) => {
+  // New functions for monthly scheduling
+  const addMonthlyTime = (date: string) => {
+    setMonthlySchedule(prev => ({
+      ...prev,
+      [date]: [...(prev[date] || []), ""]
+    }));
+  };
+
+  const updateMonthlyTime = (date: string, timeIndex: number, value: string) => {
+    setMonthlySchedule(prev => ({
+      ...prev,
+      [date]: prev[date].map((time, index) => index === timeIndex ? value : time)
+    }));
+  };
+
+  const removeMonthlyTime = (date: string, timeIndex: number) => {
+    setMonthlySchedule(prev => ({
+      ...prev,
+      [date]: prev[date].filter((_, index) => index !== timeIndex)
+    }));
+  };
+
+  const toggleMonthDate = (date: string, checked: boolean) => {
     if (checked) {
-      setSelectedDates([...selectedDates, date]);
+      setMonthlySchedule(prev => ({
+        ...prev,
+        [date]: [""]
+      }));
     } else {
-      setSelectedDates(selectedDates.filter(d => d !== date));
+      setMonthlySchedule(prev => {
+        const newSchedule = { ...prev };
+        delete newSchedule[date];
+        return newSchedule;
+      });
     }
   };
 
@@ -143,7 +205,7 @@ export function SurveyManagement() {
     setNewSurvey({ ...newSurvey, questions: updatedQuestions });
   };
 
-  const addTime = (type: "once" | "daily" | "weekly" | "monthly") => {
+  const addTime = (type: "once" | "daily") => {
     switch (type) {
       case "once":
         setOnceTimes([...onceTimes, ""]);
@@ -151,16 +213,10 @@ export function SurveyManagement() {
       case "daily":
         setDailyTimes([...dailyTimes, ""]);
         break;
-      case "weekly":
-        setWeeklyTimes([...weeklyTimes, ""]);
-        break;
-      case "monthly":
-        setMonthlyTimes([...monthlyTimes, ""]);
-        break;
     }
   };
 
-  const updateTime = (type: "once" | "daily" | "weekly" | "monthly", index: number, value: string) => {
+  const updateTime = (type: "once" | "daily", index: number, value: string) => {
     switch (type) {
       case "once":
         const updatedOnce = [...onceTimes];
@@ -172,20 +228,10 @@ export function SurveyManagement() {
         updatedDaily[index] = value;
         setDailyTimes(updatedDaily);
         break;
-      case "weekly":
-        const updatedWeekly = [...weeklyTimes];
-        updatedWeekly[index] = value;
-        setWeeklyTimes(updatedWeekly);
-        break;
-      case "monthly":
-        const updatedMonthly = [...monthlyTimes];
-        updatedMonthly[index] = value;
-        setMonthlyTimes(updatedMonthly);
-        break;
     }
   };
 
-  const removeTime = (type: "once" | "daily" | "weekly" | "monthly", index: number) => {
+  const removeTime = (type: "once" | "daily", index: number) => {
     switch (type) {
       case "once":
         if (onceTimes.length > 1) {
@@ -195,16 +241,6 @@ export function SurveyManagement() {
       case "daily":
         if (dailyTimes.length > 1) {
           setDailyTimes(dailyTimes.filter((_, i) => i !== index));
-        }
-        break;
-      case "weekly":
-        if (weeklyTimes.length > 1) {
-          setWeeklyTimes(weeklyTimes.filter((_, i) => i !== index));
-        }
-        break;
-      case "monthly":
-        if (monthlyTimes.length > 1) {
-          setMonthlyTimes(monthlyTimes.filter((_, i) => i !== index));
         }
         break;
     }
@@ -217,12 +253,10 @@ export function SurveyManagement() {
       selectedUsers: recipientType === "specific" ? selectedUsers : null,
       deliveryMode,
       scheduleType: deliveryMode === "scheduled" ? scheduleType : null,
-      selectedWeekdays: scheduleType === "weekly" ? selectedWeekdays : null,
-      selectedDates: scheduleType === "monthly" ? selectedDates : null,
+      weeklySchedule: scheduleType === "weekly" ? weeklySchedule : null,
+      monthlySchedule: scheduleType === "monthly" ? monthlySchedule : null,
       onceTimes: scheduleType === "once" ? onceTimes : null,
-      dailyTimes: scheduleType === "daily" ? dailyTimes : null,
-      weeklyTimes: scheduleType === "weekly" ? weeklyTimes : null,
-      monthlyTimes: scheduleType === "monthly" ? monthlyTimes : null
+      dailyTimes: scheduleType === "daily" ? dailyTimes : null
     });
     setIsCreateDialogOpen(false);
   };
@@ -258,19 +292,33 @@ export function SurveyManagement() {
       );
     } else {
       return (
-        <div className="space-y-1">
-          <div className="flex items-center text-sm font-medium text-foreground">
-            <User className="h-4 w-4 mr-1" />
-            Specific Users
-          </div>
-          <div className="text-xs text-muted-foreground">{recipients.count} users selected</div>
-          {recipients.list.length > 0 && (
-            <div className="text-xs text-muted-foreground max-w-48 truncate">
-              {recipients.list.slice(0, 3).join(", ")}
-              {recipients.list.length > 3 && "..."}
-            </div>
-          )}
-        </div>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="space-y-1 cursor-pointer">
+                <div className="flex items-center text-sm font-medium text-foreground">
+                  <User className="h-4 w-4 mr-1" />
+                  Specific Users
+                </div>
+                <div className="text-xs text-muted-foreground">{recipients.count} users selected</div>
+                {recipients.list.length > 0 && (
+                  <div className="text-xs text-muted-foreground max-w-48 truncate">
+                    {recipients.list.slice(0, 3).join(", ")}
+                    {recipients.list.length > 3 && "..."}
+                  </div>
+                )}
+              </div>
+            </TooltipTrigger>
+            <TooltipContent className="max-w-xs">
+              <div className="space-y-1">
+                <div className="font-medium">Selected Users:</div>
+                <div className="text-sm">
+                  {recipients.list.join(", ")}
+                </div>
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       );
     }
   };
@@ -526,40 +574,44 @@ export function SurveyManagement() {
                     )}
 
                     {scheduleType === "weekly" && (
-                      <div className="space-y-3">
-                        <Label className="text-foreground">Select Weekdays</Label>
-                        <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-4">
+                        <Label className="text-foreground">Select Weekdays and Times</Label>
+                        <div className="space-y-4">
                           {weekdays.map((day) => (
-                            <div key={day} className="flex items-center space-x-2">
-                              <Checkbox
-                                id={day}
-                                checked={selectedWeekdays.includes(day)}
-                                onCheckedChange={(checked) => handleWeekdaySelection(day, checked as boolean)}
-                              />
-                              <Label htmlFor={day} className="text-sm text-foreground">{day}</Label>
-                            </div>
-                          ))}
-                        </div>
-                        <div className="space-y-3">
-                          <div className="flex justify-between items-center">
-                            <Label className="text-foreground">Times</Label>
-                            <Button variant="outline" size="sm" onClick={() => addTime("weekly")}>
-                              <Plus className="h-4 w-4 mr-1" />
-                              Add Time
-                            </Button>
-                          </div>
-                          {weeklyTimes.map((time, index) => (
-                            <div key={index} className="flex gap-2">
-                              <Input
-                                type="time"
-                                value={time}
-                                onChange={(e) => updateTime("weekly", index, e.target.value)}
-                                className="bg-background border-input text-foreground"
-                              />
-                              {weeklyTimes.length > 1 && (
-                                <Button variant="outline" size="sm" onClick={() => removeTime("weekly", index)}>
-                                  <X className="h-4 w-4" />
-                                </Button>
+                            <div key={day} className="space-y-2">
+                              <div className="flex items-center space-x-2">
+                                <Checkbox
+                                  id={day}
+                                  checked={weeklySchedule[day] !== undefined}
+                                  onCheckedChange={(checked) => toggleWeekday(day, checked as boolean)}
+                                />
+                                <Label htmlFor={day} className="text-sm font-medium text-foreground">{day}</Label>
+                              </div>
+                              {weeklySchedule[day] && (
+                                <div className="ml-6 space-y-2">
+                                  <div className="flex justify-between items-center">
+                                    <Label className="text-xs text-muted-foreground">Times for {day}</Label>
+                                    <Button variant="outline" size="sm" onClick={() => addWeeklyTime(day)}>
+                                      <Plus className="h-3 w-3 mr-1" />
+                                      Add Time
+                                    </Button>
+                                  </div>
+                                  {weeklySchedule[day].map((time, timeIndex) => (
+                                    <div key={timeIndex} className="flex gap-2">
+                                      <Input
+                                        type="time"
+                                        value={time}
+                                        onChange={(e) => updateWeeklyTime(day, timeIndex, e.target.value)}
+                                        className="bg-background border-input text-foreground"
+                                      />
+                                      {weeklySchedule[day].length > 1 && (
+                                        <Button variant="outline" size="sm" onClick={() => removeWeeklyTime(day, timeIndex)}>
+                                          <X className="h-4 w-4" />
+                                        </Button>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
                               )}
                             </div>
                           ))}
@@ -568,40 +620,50 @@ export function SurveyManagement() {
                     )}
 
                     {scheduleType === "monthly" && (
-                      <div className="space-y-3">
-                        <Label className="text-foreground">Select Dates</Label>
-                        <div className="grid grid-cols-8 gap-2 max-h-32 overflow-y-auto">
+                      <div className="space-y-4">
+                        <Label className="text-foreground">Select Dates and Times</Label>
+                        <div className="space-y-4 max-h-64 overflow-y-auto">
                           {monthDates.map((date) => (
-                            <div key={date} className="flex items-center space-x-1">
-                              <Checkbox
-                                id={`date-${date}`}
-                                checked={selectedDates.includes(date)}
-                                onCheckedChange={(checked) => handleDateSelection(date, checked as boolean)}
-                              />
-                              <Label htmlFor={`date-${date}`} className="text-sm text-foreground">{date}</Label>
-                            </div>
-                          ))}
-                        </div>
-                        <div className="space-y-3">
-                          <div className="flex justify-between items-center">
-                            <Label className="text-foreground">Times</Label>
-                            <Button variant="outline" size="sm" onClick={() => addTime("monthly")}>
-                              <Plus className="h-4 w-4 mr-1" />
-                              Add Time
-                            </Button>
-                          </div>
-                          {monthlyTimes.map((time, index) => (
-                            <div key={index} className="flex gap-2">
-                              <Input
-                                type="time"
-                                value={time}
-                                onChange={(e) => updateTime("monthly", index, e.target.value)}
-                                className="bg-background border-input text-foreground"
-                              />
-                              {monthlyTimes.length > 1 && (
-                                <Button variant="outline" size="sm" onClick={() => removeTime("monthly", index)}>
-                                  <X className="h-4 w-4" />
-                                </Button>
+                            <div key={date} className="space-y-2">
+                              <div className="flex items-center space-x-2">
+                                <Checkbox
+                                  id={`date-${date}`}
+                                  checked={monthlySchedule[date] !== undefined}
+                                  onCheckedChange={(checked) => toggleMonthDate(date, checked as boolean)}
+                                />
+                                <Label htmlFor={`date-${date}`} className="text-sm font-medium text-foreground">
+                                  {date}{date === "1" || date === "21" || date === "31" ? "st" : 
+                                      date === "2" || date === "22" ? "nd" : 
+                                      date === "3" || date === "23" ? "rd" : "th"}
+                                </Label>
+                              </div>
+                              {monthlySchedule[date] && (
+                                <div className="ml-6 space-y-2">
+                                  <div className="flex justify-between items-center">
+                                    <Label className="text-xs text-muted-foreground">Times for {date}{date === "1" || date === "21" || date === "31" ? "st" : 
+                                        date === "2" || date === "22" ? "nd" : 
+                                        date === "3" || date === "23" ? "rd" : "th"}</Label>
+                                    <Button variant="outline" size="sm" onClick={() => addMonthlyTime(date)}>
+                                      <Plus className="h-3 w-3 mr-1" />
+                                      Add Time
+                                    </Button>
+                                  </div>
+                                  {monthlySchedule[date].map((time, timeIndex) => (
+                                    <div key={timeIndex} className="flex gap-2">
+                                      <Input
+                                        type="time"
+                                        value={time}
+                                        onChange={(e) => updateMonthlyTime(date, timeIndex, e.target.value)}
+                                        className="bg-background border-input text-foreground"
+                                      />
+                                      {monthlySchedule[date].length > 1 && (
+                                        <Button variant="outline" size="sm" onClick={() => removeMonthlyTime(date, timeIndex)}>
+                                          <X className="h-4 w-4" />
+                                        </Button>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
                               )}
                             </div>
                           ))}
