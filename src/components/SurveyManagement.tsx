@@ -21,7 +21,11 @@ const existingSurveys = [
     title: "Team Satisfaction Survey",
     description: "Quarterly team satisfaction assessment",
     status: "Active",
-    recipients: "All Users (324)",
+    recipients: {
+      type: "all",
+      count: 324,
+      list: []
+    },
     scheduledDate: "2024-01-15",
     responses: 45,
     totalSent: 324,
@@ -32,7 +36,11 @@ const existingSurveys = [
     title: "Project Feedback Survey",
     description: "End of project feedback collection",
     status: "Completed",
-    recipients: "Development Team (12)",
+    recipients: {
+      type: "specific",
+      count: 12,
+      list: ["John Doe", "Jane Smith", "Mike Johnson", "Sarah Wilson", "David Brown", "Emma Davis", "Alex Turner", "Lisa Garcia", "Tom Anderson", "Maria Rodriguez", "Chris Lee", "Amy Chen"]
+    },
     scheduledDate: "2024-01-01",
     responses: 12,
     totalSent: 12,
@@ -43,7 +51,11 @@ const existingSurveys = [
     title: "Annual Review Survey",
     description: "Annual performance and satisfaction review",
     status: "Draft",
-    recipients: "All Users (324)",
+    recipients: {
+      type: "specific",
+      count: 45,
+      list: ["Engineering Team", "Design Team", "Marketing Team"]
+    },
     scheduledDate: null,
     responses: 0,
     totalSent: 0,
@@ -68,6 +80,7 @@ export function SurveyManagement() {
   const [scheduleType, setScheduleType] = useState<"once" | "daily" | "weekly" | "monthly">("once");
   const [selectedWeekdays, setSelectedWeekdays] = useState<string[]>([]);
   const [selectedDates, setSelectedDates] = useState<string[]>([]);
+  const [onceTimes, setOnceTimes] = useState<string[]>([""]);
   const [dailyTimes, setDailyTimes] = useState<string[]>([""]);
   const [weeklyTimes, setWeeklyTimes] = useState<string[]>([""]);
   const [monthlyTimes, setMonthlyTimes] = useState<string[]>([""]);
@@ -78,7 +91,6 @@ export function SurveyManagement() {
     description: "",
     questions: [""],
     scheduleDate: "",
-    scheduleTime: "",
     status: "draft"
   });
 
@@ -131,8 +143,11 @@ export function SurveyManagement() {
     setNewSurvey({ ...newSurvey, questions: updatedQuestions });
   };
 
-  const addTime = (type: "daily" | "weekly" | "monthly") => {
+  const addTime = (type: "once" | "daily" | "weekly" | "monthly") => {
     switch (type) {
+      case "once":
+        setOnceTimes([...onceTimes, ""]);
+        break;
       case "daily":
         setDailyTimes([...dailyTimes, ""]);
         break;
@@ -145,8 +160,13 @@ export function SurveyManagement() {
     }
   };
 
-  const updateTime = (type: "daily" | "weekly" | "monthly", index: number, value: string) => {
+  const updateTime = (type: "once" | "daily" | "weekly" | "monthly", index: number, value: string) => {
     switch (type) {
+      case "once":
+        const updatedOnce = [...onceTimes];
+        updatedOnce[index] = value;
+        setOnceTimes(updatedOnce);
+        break;
       case "daily":
         const updatedDaily = [...dailyTimes];
         updatedDaily[index] = value;
@@ -165,8 +185,13 @@ export function SurveyManagement() {
     }
   };
 
-  const removeTime = (type: "daily" | "weekly" | "monthly", index: number) => {
+  const removeTime = (type: "once" | "daily" | "weekly" | "monthly", index: number) => {
     switch (type) {
+      case "once":
+        if (onceTimes.length > 1) {
+          setOnceTimes(onceTimes.filter((_, i) => i !== index));
+        }
+        break;
       case "daily":
         if (dailyTimes.length > 1) {
           setDailyTimes(dailyTimes.filter((_, i) => i !== index));
@@ -194,6 +219,7 @@ export function SurveyManagement() {
       scheduleType: deliveryMode === "scheduled" ? scheduleType : null,
       selectedWeekdays: scheduleType === "weekly" ? selectedWeekdays : null,
       selectedDates: scheduleType === "monthly" ? selectedDates : null,
+      onceTimes: scheduleType === "once" ? onceTimes : null,
       dailyTimes: scheduleType === "daily" ? dailyTimes : null,
       weeklyTimes: scheduleType === "weekly" ? weeklyTimes : null,
       monthlyTimes: scheduleType === "monthly" ? monthlyTimes : null
@@ -219,6 +245,36 @@ export function SurveyManagement() {
     return <Badge variant={variants[status as keyof typeof variants] || "outline"}>{status}</Badge>;
   };
 
+  const formatRecipients = (recipients: any) => {
+    if (recipients.type === "all") {
+      return (
+        <div className="space-y-1">
+          <div className="flex items-center text-sm font-medium text-foreground">
+            <Users className="h-4 w-4 mr-1" />
+            All Users
+          </div>
+          <div className="text-xs text-muted-foreground">{recipients.count} users</div>
+        </div>
+      );
+    } else {
+      return (
+        <div className="space-y-1">
+          <div className="flex items-center text-sm font-medium text-foreground">
+            <User className="h-4 w-4 mr-1" />
+            Specific Users
+          </div>
+          <div className="text-xs text-muted-foreground">{recipients.count} users selected</div>
+          {recipients.list.length > 0 && (
+            <div className="text-xs text-muted-foreground max-w-48 truncate">
+              {recipients.list.slice(0, 3).join(", ")}
+              {recipients.list.length > 3 && "..."}
+            </div>
+          )}
+        </div>
+      );
+    }
+  };
+
   if (viewingResponses) {
     return (
       <SurveyResponses
@@ -230,15 +286,15 @@ export function SurveyManagement() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="space-y-6 p-4 sm:p-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Survey Management</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Survey Management</h1>
           <p className="text-muted-foreground">Create and manage surveys for your organization</p>
         </div>
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
-            <Button>
+            <Button className="w-full sm:w-auto">
               <Plus className="h-4 w-4 mr-2" />
               Create Survey
             </Button>
@@ -251,7 +307,7 @@ export function SurveyManagement() {
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-6">
-              <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="title" className="text-foreground">Survey Title</Label>
                   <Input
@@ -259,16 +315,6 @@ export function SurveyManagement() {
                     value={newSurvey.title}
                     onChange={(e) => setNewSurvey({ ...newSurvey, title: e.target.value })}
                     placeholder="Enter survey title"
-                    className="bg-background border-input text-foreground"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="description" className="text-foreground">Description</Label>
-                  <Textarea
-                    id="description"
-                    value={newSurvey.description}
-                    onChange={(e) => setNewSurvey({ ...newSurvey, description: e.target.value })}
-                    placeholder="Enter survey description"
                     className="bg-background border-input text-foreground"
                   />
                 </div>
@@ -287,6 +333,17 @@ export function SurveyManagement() {
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+              
+              <div>
+                <Label htmlFor="description" className="text-foreground">Description</Label>
+                <Textarea
+                  id="description"
+                  value={newSurvey.description}
+                  onChange={(e) => setNewSurvey({ ...newSurvey, description: e.target.value })}
+                  placeholder="Enter survey description"
+                  className="bg-background border-input text-foreground"
+                />
               </div>
 
               {/* Questions Section */}
@@ -404,7 +461,7 @@ export function SurveyManagement() {
                     </Select>
 
                     {scheduleType === "once" && (
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-4">
                         <div>
                           <Label className="text-foreground">Date</Label>
                           <Input
@@ -414,14 +471,29 @@ export function SurveyManagement() {
                             className="bg-background border-input text-foreground"
                           />
                         </div>
-                        <div>
-                          <Label className="text-foreground">Time</Label>
-                          <Input
-                            type="time"
-                            value={newSurvey.scheduleTime}
-                            onChange={(e) => setNewSurvey({ ...newSurvey, scheduleTime: e.target.value })}
-                            className="bg-background border-input text-foreground"
-                          />
+                        <div className="space-y-3">
+                          <div className="flex justify-between items-center">
+                            <Label className="text-foreground">Times</Label>
+                            <Button variant="outline" size="sm" onClick={() => addTime("once")}>
+                              <Plus className="h-4 w-4 mr-1" />
+                              Add Time
+                            </Button>
+                          </div>
+                          {onceTimes.map((time, index) => (
+                            <div key={index} className="flex gap-2">
+                              <Input
+                                type="time"
+                                value={time}
+                                onChange={(e) => updateTime("once", index, e.target.value)}
+                                className="bg-background border-input text-foreground"
+                              />
+                              {onceTimes.length > 1 && (
+                                <Button variant="outline" size="sm" onClick={() => removeTime("once", index)}>
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
+                          ))}
                         </div>
                       </div>
                     )}
@@ -540,11 +612,11 @@ export function SurveyManagement() {
                 )}
               </div>
 
-              <div className="flex justify-end space-x-2">
-                <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+              <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2">
+                <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)} className="w-full sm:w-auto">
                   Cancel
                 </Button>
-                <Button onClick={handleCreateSurvey}>
+                <Button onClick={handleCreateSurvey} className="w-full sm:w-auto">
                   Create Survey
                 </Button>
               </div>
@@ -560,52 +632,48 @@ export function SurveyManagement() {
           <CardDescription className="text-muted-foreground">Manage and view all surveys</CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow className="border-border">
-                <TableHead className="text-foreground">Title</TableHead>
-                <TableHead className="text-foreground">Status</TableHead>
-                <TableHead className="text-foreground">Recipients</TableHead>
-                <TableHead className="text-foreground">Scheduled Date</TableHead>
-                <TableHead className="text-foreground">Responses</TableHead>
-                <TableHead className="text-foreground">Created</TableHead>
-                <TableHead className="text-foreground">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {existingSurveys.map((survey) => (
-                <TableRow key={survey.id} className="border-border">
-                  <TableCell>
-                    <div>
-                      <div className="font-medium text-foreground">{survey.title}</div>
-                      <div className="text-sm text-muted-foreground">{survey.description}</div>
-                    </div>
-                  </TableCell>
-                  <TableCell>{getStatusBadge(survey.status)}</TableCell>
-                  <TableCell className="text-sm text-foreground">{survey.recipients}</TableCell>
-                  <TableCell>
-                    {survey.scheduledDate ? (
-                      <div className="flex items-center text-sm text-foreground">
-                        <Calendar className="h-4 w-4 mr-1" />
-                        {survey.scheduledDate}
+          {/* Mobile Card View */}
+          <div className="block lg:hidden space-y-4">
+            {existingSurveys.map((survey) => (
+              <Card key={survey.id} className="bg-background border-border">
+                <CardContent className="p-4">
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <h3 className="font-medium text-foreground">{survey.title}</h3>
+                        <p className="text-sm text-muted-foreground">{survey.description}</p>
                       </div>
-                    ) : (
-                      <span className="text-muted-foreground">-</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-sm text-foreground">
-                      {survey.responses}/{survey.totalSent}
-                      {survey.totalSent > 0 && (
-                        <div className="text-xs text-muted-foreground">
-                          {Math.round((survey.responses / survey.totalSent) * 100)}% response rate
+                      {getStatusBadge(survey.status)}
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <div>
+                        <span className="text-xs font-medium text-muted-foreground">Recipients:</span>
+                        {formatRecipients(survey.recipients)}
+                      </div>
+                      
+                      {survey.scheduledDate && (
+                        <div className="flex items-center text-sm text-foreground">
+                          <Calendar className="h-4 w-4 mr-1" />
+                          {survey.scheduledDate}
                         </div>
                       )}
+                      
+                      <div className="text-sm text-foreground">
+                        Responses: {survey.responses}/{survey.totalSent}
+                        {survey.totalSent > 0 && (
+                          <span className="text-xs text-muted-foreground ml-1">
+                            ({Math.round((survey.responses / survey.totalSent) * 100)}%)
+                          </span>
+                        )}
+                      </div>
+                      
+                      <div className="text-xs text-muted-foreground">
+                        Created: {survey.createdAt}
+                      </div>
                     </div>
-                  </TableCell>
-                  <TableCell className="text-sm text-foreground">{survey.createdAt}</TableCell>
-                  <TableCell>
-                    <div className="flex space-x-1">
+                    
+                    <div className="flex justify-end space-x-1">
                       <Button 
                         variant="ghost" 
                         size="sm"
@@ -622,11 +690,82 @@ export function SurveyManagement() {
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
-                  </TableCell>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden lg:block overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-border">
+                  <TableHead className="text-foreground">Title</TableHead>
+                  <TableHead className="text-foreground">Status</TableHead>
+                  <TableHead className="text-foreground">Recipients</TableHead>
+                  <TableHead className="text-foreground">Scheduled Date</TableHead>
+                  <TableHead className="text-foreground">Responses</TableHead>
+                  <TableHead className="text-foreground">Created</TableHead>
+                  <TableHead className="text-foreground">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {existingSurveys.map((survey) => (
+                  <TableRow key={survey.id} className="border-border">
+                    <TableCell>
+                      <div>
+                        <div className="font-medium text-foreground">{survey.title}</div>
+                        <div className="text-sm text-muted-foreground">{survey.description}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell>{getStatusBadge(survey.status)}</TableCell>
+                    <TableCell>{formatRecipients(survey.recipients)}</TableCell>
+                    <TableCell>
+                      {survey.scheduledDate ? (
+                        <div className="flex items-center text-sm text-foreground">
+                          <Calendar className="h-4 w-4 mr-1" />
+                          {survey.scheduledDate}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm text-foreground">
+                        {survey.responses}/{survey.totalSent}
+                        {survey.totalSent > 0 && (
+                          <div className="text-xs text-muted-foreground">
+                            {Math.round((survey.responses / survey.totalSent) * 100)}% response rate
+                          </div>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-sm text-foreground">{survey.createdAt}</TableCell>
+                    <TableCell>
+                      <div className="flex space-x-1">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleViewResponses(survey.id, survey.title)}
+                          disabled={survey.responses === 0}
+                          className="text-foreground hover:bg-accent"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" className="text-foreground hover:bg-accent">
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" className="text-foreground hover:bg-accent">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </div>
