@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Calendar, Clock, Plus, Send, Edit, Trash2, Eye, Users, User, X, MessageSquare, CalendarClock } from "lucide-react";
+import { Calendar, Clock, Plus, Send, Edit, Trash2, Users, User, X, MessageSquare, CalendarClock } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { SurveyResponses } from "@/components/SurveyResponses";
@@ -74,6 +73,8 @@ const mockUsers = Array.from({ length: 324 }, (_, i) => ({
 
 export function SurveyManagement() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingSurvey, setEditingSurvey] = useState<any>(null);
   const [recipientType, setRecipientType] = useState<"all" | "specific">("all");
   const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
   const [userSearch, setUserSearch] = useState("");
@@ -261,6 +262,38 @@ export function SurveyManagement() {
     setIsCreateDialogOpen(false);
   };
 
+  const handleEditSurvey = (survey: any) => {
+    setEditingSurvey(survey);
+    setNewSurvey({
+      title: survey.title,
+      description: survey.description,
+      questions: [""], // You might want to load actual questions here
+      scheduleDate: survey.scheduledDate || "",
+      status: survey.status.toLowerCase()
+    });
+    setRecipientType(survey.recipients.type);
+    setSelectedUsers(survey.recipients.type === "specific" ? [] : []); // Load actual selected users
+    setDeliveryMode(survey.scheduledDate ? "scheduled" : "immediate");
+    setIsEditDialogOpen(true);
+  };
+
+  const handleUpdateSurvey = () => {
+    console.log("Updating survey:", {
+      id: editingSurvey.id,
+      ...newSurvey,
+      recipientType,
+      selectedUsers: recipientType === "specific" ? selectedUsers : null,
+      deliveryMode,
+      scheduleType: deliveryMode === "scheduled" ? scheduleType : null,
+      weeklySchedule: scheduleType === "weekly" ? weeklySchedule : null,
+      monthlySchedule: scheduleType === "monthly" ? monthlySchedule : null,
+      onceTimes: scheduleType === "once" ? onceTimes : null,
+      dailyTimes: scheduleType === "daily" ? dailyTimes : null
+    });
+    setIsEditDialogOpen(false);
+    setEditingSurvey(null);
+  };
+
   const handleViewResponses = (surveyId: number, surveyTitle: string) => {
     setViewingResponses({ surveyId, surveyTitle });
   };
@@ -323,10 +356,18 @@ export function SurveyManagement() {
     }
   };
 
-  const formatResponsesWithCount = (responses: number, totalSent: number) => {
+  const formatResponsesWithCount = (responses: number, totalSent: number, surveyId: number, surveyTitle: string) => {
     return (
       <div className="flex items-center space-x-2">
-        <MessageSquare className="h-4 w-4 text-blue-600" />
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => handleViewResponses(surveyId, surveyTitle)}
+          disabled={responses === 0}
+          className="p-0 h-auto hover:bg-transparent"
+        >
+          <MessageSquare className="h-4 w-4 text-blue-600 hover:text-blue-800 cursor-pointer" />
+        </Button>
         <div className="space-y-1">
           <div className="text-sm font-medium text-foreground">
             {responses} Responses
@@ -483,7 +524,7 @@ export function SurveyManagement() {
                 ))}
               </div>
 
-              {/* Recipients Section */}
+              {/* Recipients Section - same as create */}
               <div className="space-y-4">
                 <Label className="text-base font-semibold text-foreground">Recipients</Label>
                 <RadioGroup value={recipientType} onValueChange={(value: "all" | "specific") => setRecipientType(value)}>
@@ -537,7 +578,7 @@ export function SurveyManagement() {
                 )}
               </div>
 
-              {/* Delivery Mode Section */}
+              {/* Delivery Mode Section - same as create */}
               <div className="space-y-4">
                 <Label className="text-base font-semibold text-foreground">Delivery Mode</Label>
                 <RadioGroup value={deliveryMode} onValueChange={(value: "immediate" | "scheduled") => setDeliveryMode(value)}>
@@ -748,6 +789,347 @@ export function SurveyManagement() {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Edit Survey Dialog */}
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-background border-border">
+            <DialogHeader>
+              <DialogTitle className="text-foreground">Edit Survey</DialogTitle>
+              <DialogDescription className="text-muted-foreground">
+                Edit the survey details and scheduling
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit-title" className="text-foreground">Survey Title</Label>
+                  <Input
+                    id="edit-title"
+                    value={newSurvey.title}
+                    onChange={(e) => setNewSurvey({ ...newSurvey, title: e.target.value })}
+                    placeholder="Enter survey title"
+                    className="bg-background border-input text-foreground"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-status" className="text-foreground">Status</Label>
+                  <Select value={newSurvey.status} onValueChange={(value) => setNewSurvey({ ...newSurvey, status: value })}>
+                    <SelectTrigger className="bg-background border-input text-foreground">
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background border-border">
+                      {surveyStatuses.map((status) => (
+                        <SelectItem key={status} value={status} className="text-foreground hover:bg-accent">
+                          {status.charAt(0).toUpperCase() + status.slice(1)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              <div>
+                <Label htmlFor="edit-description" className="text-foreground">Description</Label>
+                <Textarea
+                  id="edit-description"
+                  value={newSurvey.description}
+                  onChange={(e) => setNewSurvey({ ...newSurvey, description: e.target.value })}
+                  placeholder="Enter survey description"
+                  className="bg-background border-input text-foreground"
+                />
+              </div>
+
+              {/* Questions Section */}
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <Label className="text-base font-semibold text-foreground">Questions</Label>
+                  <Button variant="outline" size="sm" onClick={addQuestion}>
+                    <Plus className="h-4 w-4 mr-1" />
+                    Add Question
+                  </Button>
+                </div>
+                {newSurvey.questions.map((question, index) => (
+                  <div key={index} className="flex gap-2">
+                    <Textarea
+                      value={question}
+                      onChange={(e) => updateQuestion(index, e.target.value)}
+                      placeholder={`Question ${index + 1}`}
+                      className="flex-1 bg-background border-input text-foreground"
+                    />
+                    {newSurvey.questions.length > 1 && (
+                      <Button variant="outline" size="sm" onClick={() => removeQuestion(index)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Recipients Section - same as create */}
+              <div className="space-y-4">
+                <Label className="text-base font-semibold text-foreground">Recipients</Label>
+                <RadioGroup value={recipientType} onValueChange={(value: "all" | "specific") => setRecipientType(value)}>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="all" id="all-users" />
+                    <Label htmlFor="all-users" className="flex items-center text-foreground">
+                      <Users className="h-4 w-4 mr-1" />
+                      All Users (324)
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="specific" id="specific-users" />
+                    <Label htmlFor="specific-users" className="flex items-center text-foreground">
+                      <User className="h-4 w-4 mr-1" />
+                      Specific Users
+                    </Label>
+                  </div>
+                </RadioGroup>
+
+                {recipientType === "specific" && (
+                  <div className="space-y-3">
+                    <Input
+                      placeholder="Search users..."
+                      value={userSearch}
+                      onChange={(e) => setUserSearch(e.target.value)}
+                      className="bg-background border-input text-foreground"
+                    />
+                    <div className="border border-border rounded-md p-3 max-h-48 overflow-y-auto bg-background">
+                      <div className="space-y-2">
+                        {filteredUsers.slice(0, 50).map((user) => (
+                          <div key={user.id} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`user-${user.id}`}
+                              checked={selectedUsers.includes(user.id)}
+                              onCheckedChange={(checked) => handleUserSelection(user.id, checked as boolean)}
+                            />
+                            <Label htmlFor={`user-${user.id}`} className="text-sm text-foreground">
+                              {user.name} ({user.email}) - {user.department}
+                            </Label>
+                          </div>
+                        ))}
+                        {filteredUsers.length > 50 && (
+                          <p className="text-sm text-muted-foreground">Showing first 50 results. Use search to narrow down.</p>
+                        )}
+                      </div>
+                    </div>
+                    {selectedUsers.length > 0 && (
+                      <p className="text-sm text-muted-foreground">{selectedUsers.length} users selected</p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Delivery Mode Section - same as create */}
+              <div className="space-y-4">
+                <Label className="text-base font-semibold text-foreground">Delivery Mode</Label>
+                <RadioGroup value={deliveryMode} onValueChange={(value: "immediate" | "scheduled") => setDeliveryMode(value)}>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="immediate" id="immediate" />
+                    <Label htmlFor="immediate" className="flex items-center text-foreground">
+                      <Send className="h-4 w-4 mr-1" />
+                      Send Immediately
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="scheduled" id="scheduled" />
+                    <Label htmlFor="scheduled" className="flex items-center text-foreground">
+                      <Calendar className="h-4 w-4 mr-1" />
+                      Schedule Delivery
+                    </Label>
+                  </div>
+                </RadioGroup>
+
+                {deliveryMode === "scheduled" && (
+                  <div className="space-y-4 pl-6">
+                    <Select value={scheduleType} onValueChange={(value: "once" | "daily" | "weekly" | "monthly") => setScheduleType(value)}>
+                      <SelectTrigger className="bg-background border-input text-foreground">
+                        <SelectValue placeholder="Select schedule type" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-background border-border">
+                        <SelectItem value="once" className="text-foreground hover:bg-accent">One Time</SelectItem>
+                        <SelectItem value="daily" className="text-foreground hover:bg-accent">Daily</SelectItem>
+                        <SelectItem value="weekly" className="text-foreground hover:bg-accent">Weekly</SelectItem>
+                        <SelectItem value="monthly" className="text-foreground hover:bg-accent">Monthly</SelectItem>
+                      </SelectContent>
+                    </Select>
+
+                    {scheduleType === "once" && (
+                      <div className="space-y-4">
+                        <div>
+                          <Label className="text-foreground">Date</Label>
+                          <Input
+                            type="date"
+                            value={newSurvey.scheduleDate}
+                            onChange={(e) => setNewSurvey({ ...newSurvey, scheduleDate: e.target.value })}
+                            className="bg-background border-input text-foreground"
+                          />
+                        </div>
+                        <div className="space-y-3">
+                          <div className="flex justify-between items-center">
+                            <Label className="text-foreground">Times</Label>
+                            <Button variant="outline" size="sm" onClick={() => addTime("once")}>
+                              <Plus className="h-4 w-4 mr-1" />
+                              Add Time
+                            </Button>
+                          </div>
+                          {onceTimes.map((time, index) => (
+                            <div key={index} className="flex gap-2">
+                              <Input
+                                type="time"
+                                value={time}
+                                onChange={(e) => updateTime("once", index, e.target.value)}
+                                className="bg-background border-input text-foreground"
+                              />
+                              {onceTimes.length > 1 && (
+                                <Button variant="outline" size="sm" onClick={() => removeTime("once", index)}>
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {scheduleType === "daily" && (
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center">
+                          <Label className="text-foreground">Times</Label>
+                          <Button variant="outline" size="sm" onClick={() => addTime("daily")}>
+                            <Plus className="h-4 w-4 mr-1" />
+                            Add Time
+                          </Button>
+                        </div>
+                        {dailyTimes.map((time, index) => (
+                          <div key={index} className="flex gap-2">
+                            <Input
+                              type="time"
+                              value={time}
+                              onChange={(e) => updateTime("daily", index, e.target.value)}
+                              className="bg-background border-input text-foreground"
+                            />
+                            {dailyTimes.length > 1 && (
+                              <Button variant="outline" size="sm" onClick={() => removeTime("daily", index)}>
+                                <X className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {scheduleType === "weekly" && (
+                      <div className="space-y-4">
+                        <Label className="text-foreground">Select Weekdays and Times</Label>
+                        <div className="space-y-4">
+                          {weekdays.map((day) => (
+                            <div key={day} className="space-y-2">
+                              <div className="flex items-center space-x-2">
+                                <Checkbox
+                                  id={day}
+                                  checked={weeklySchedule[day] !== undefined}
+                                  onCheckedChange={(checked) => toggleWeekday(day, checked as boolean)}
+                                />
+                                <Label htmlFor={day} className="text-sm font-medium text-foreground">{day}</Label>
+                              </div>
+                              {weeklySchedule[day] && (
+                                <div className="ml-6 space-y-2">
+                                  <div className="flex justify-between items-center">
+                                    <Label className="text-xs text-muted-foreground">Times for {day}</Label>
+                                    <Button variant="outline" size="sm" onClick={() => addWeeklyTime(day)}>
+                                      <Plus className="h-3 w-3 mr-1" />
+                                      Add Time
+                                    </Button>
+                                  </div>
+                                  {weeklySchedule[day].map((time, timeIndex) => (
+                                    <div key={timeIndex} className="flex gap-2">
+                                      <Input
+                                        type="time"
+                                        value={time}
+                                        onChange={(e) => updateWeeklyTime(day, timeIndex, e.target.value)}
+                                        className="bg-background border-input text-foreground"
+                                      />
+                                      {weeklySchedule[day].length > 1 && (
+                                        <Button variant="outline" size="sm" onClick={() => removeWeeklyTime(day, timeIndex)}>
+                                          <X className="h-4 w-4" />
+                                        </Button>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {scheduleType === "monthly" && (
+                      <div className="space-y-4">
+                        <Label className="text-foreground">Select Dates and Times</Label>
+                        <div className="space-y-4 max-h-64 overflow-y-auto">
+                          {monthDates.map((date) => (
+                            <div key={date} className="space-y-2">
+                              <div className="flex items-center space-x-2">
+                                <Checkbox
+                                  id={`date-${date}`}
+                                  checked={monthlySchedule[date] !== undefined}
+                                  onCheckedChange={(checked) => toggleMonthDate(date, checked as boolean)}
+                                />
+                                <Label htmlFor={`date-${date}`} className="text-sm font-medium text-foreground">
+                                  {date}{date === "1" || date === "21" || date === "31" ? "st" : 
+                                      date === "2" || date === "22" ? "nd" : 
+                                      date === "3" || date === "23" ? "rd" : "th"}
+                                </Label>
+                              </div>
+                              {monthlySchedule[date] && (
+                                <div className="ml-6 space-y-2">
+                                  <div className="flex justify-between items-center">
+                                    <Label className="text-xs text-muted-foreground">Times for {date}{date === "1" || date === "21" || date === "31" ? "st" : 
+                                        date === "2" || date === "22" ? "nd" : 
+                                        date === "3" || date === "23" ? "rd" : "th"}</Label>
+                                    <Button variant="outline" size="sm" onClick={() => addMonthlyTime(date)}>
+                                      <Plus className="h-3 w-3 mr-1" />
+                                      Add Time
+                                    </Button>
+                                  </div>
+                                  {monthlySchedule[date].map((time, timeIndex) => (
+                                    <div key={timeIndex} className="flex gap-2">
+                                      <Input
+                                        type="time"
+                                        value={time}
+                                        onChange={(e) => updateMonthlyTime(date, timeIndex, e.target.value)}
+                                        className="bg-background border-input text-foreground"
+                                      />
+                                      {monthlySchedule[date].length > 1 && (
+                                        <Button variant="outline" size="sm" onClick={() => removeMonthlyTime(date, timeIndex)}>
+                                          <X className="h-4 w-4" />
+                                        </Button>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2">
+                <Button variant="outline" onClick={() => setIsEditDialogOpen(false)} className="w-full sm:w-auto">
+                  Cancel
+                </Button>
+                <Button onClick={handleUpdateSurvey} className="w-full sm:w-auto">
+                  Update Survey
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Surveys Table */}
@@ -784,7 +1166,7 @@ export function SurveyManagement() {
                       
                       <div>
                         <span className="text-xs font-medium text-muted-foreground">Responses:</span>
-                        {formatResponsesWithCount(survey.responses, survey.totalSent)}
+                        {formatResponsesWithCount(survey.responses, survey.totalSent, survey.id, survey.title)}
                       </div>
                       
                       <div className="text-xs text-muted-foreground">
@@ -796,13 +1178,9 @@ export function SurveyManagement() {
                       <Button 
                         variant="ghost" 
                         size="sm"
-                        onClick={() => handleViewResponses(survey.id, survey.title)}
-                        disabled={survey.responses === 0}
+                        onClick={() => handleEditSurvey(survey)}
                         className="text-foreground hover:bg-accent"
                       >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm" className="text-foreground hover:bg-accent">
                         <Edit className="h-4 w-4" />
                       </Button>
                       <Button variant="ghost" size="sm" className="text-foreground hover:bg-accent">
@@ -841,20 +1219,16 @@ export function SurveyManagement() {
                     <TableCell>{getStatusBadge(survey.status)}</TableCell>
                     <TableCell>{formatRecipients(survey.recipients)}</TableCell>
                     <TableCell>{formatScheduleDetails(survey)}</TableCell>
-                    <TableCell>{formatResponsesWithCount(survey.responses, survey.totalSent)}</TableCell>
+                    <TableCell>{formatResponsesWithCount(survey.responses, survey.totalSent, survey.id, survey.title)}</TableCell>
                     <TableCell className="text-sm text-foreground">{survey.createdAt}</TableCell>
                     <TableCell>
                       <div className="flex space-x-1">
                         <Button 
                           variant="ghost" 
                           size="sm"
-                          onClick={() => handleViewResponses(survey.id, survey.title)}
-                          disabled={survey.responses === 0}
+                          onClick={() => handleEditSurvey(survey)}
                           className="text-foreground hover:bg-accent"
                         >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm" className="text-foreground hover:bg-accent">
                           <Edit className="h-4 w-4" />
                         </Button>
                         <Button variant="ghost" size="sm" className="text-foreground hover:bg-accent">
